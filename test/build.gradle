@@ -1,0 +1,15 @@
+plugins {
+    id 'java'
+    id 'application'
+}
+
+sourceCompatibility = 1.8
+
+dependencies {
+    implementation 'io.jenetics:jenetics:4.4.0'
+    implementation 'com.alibaba:fastjson:1.2.54'
+    implementation 'commons-io:commons-io:2.6'
+    // implementation project(':uds')
+}
+
+mainClassName = 'com.mrwind.uds.tsp.Test'

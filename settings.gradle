@@ -1,0 +1,4 @@
+rootProject.name = 'uds2'
+
+include 'uds', 'test'
+

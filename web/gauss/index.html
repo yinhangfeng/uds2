@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="chrome=1" />
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no, width=device-width" />
+    <style>
+      html,
+      body,
+      #container {
+        height: 100%;
+        padding: 0;
+        margin: 0;
+      }
+      .info {
+        position: absolute;
+        width: 350px;
+        height: 350px;
+        right: 0;
+        bottom: 0;
+        background-color: #fff;
+        padding: 20px;
+        margin: 0px;
+      }
+    </style>
+    <title>距离测量</title>
+  </head>
+  <body>
+    <div id="container"></div>
+    <pre class="info"></pre>
+    <script
+      type="text/javascript"
+      src="https://webapi.amap.com/maps?v=1.4.10&key=c453cc05a143cb2c905212d766126340&plugin=AMap.Driving"
+    ></script>
+    <script type="text/javascript">
+      //初始化地图对象，加载地图
+      const map = new AMap.Map('container', {
+        resizeEnable: true,
+        zoom: 13,
+      });
+
+      //构造路线导航类
+      const driving = new AMap.Driving({
+        map: map,
+      });
+
+      let m1;
+      let m2;
+
+      map.on('click', e => {
+        const position = new AMap.LngLat(e.lnglat.getLng(), e.lnglat.getLat());
+        const marker = new AMap.Marker({
+          position,
+        });
+        if (m2) {
+          m1 = marker;
+          m2 = null;
+          map.clearMap();
+        } else if (m1) {
+          m2 = marker;
+        } else {
+          m1 = marker;
+        }
+        map.add(marker);
+        calc();
+      });
+
+      function calc() {
+        if (!m1 || !m2) {
+          return;
+        }
+        const p1 = m1.getPosition();
+        const p2 = m2.getPosition();
+        const line = new AMap.Polyline({
+          strokeColor: '#80d8ff',
+          isOutline: true,
+          outlineColor: 'white',
+          path: [p1, p2],
+        });
+        map.add(line);
+
+        const distance = p1.distance(p2);
+
+        const info = document.querySelector('.info');
+
+        const gp1 = wgs84ToGauss(p1.getLng(), p1.getLat());
+        const gp2 = wgs84ToGauss(p2.getLng(), p2.getLat());
+        const gDistance = Math.sqrt(
+          (gp1.x - gp2.x) * (gp1.x - gp2.x) + (gp1.y - gp2.y) * (gp1.y - gp2.y)
+        );
+        const gRightAngleDistance = Math.abs(gp1.x - gp2.x) + Math.abs(gp1.y - gp2.y);
+
+        info.innerText = `GCJ02
+p1: ${p1.getLng()} ${p1.getLat()}
+p2: ${p2.getLng()} ${p2.getLat()}
+直线距离: ${distance}
+
+GAUSS
+gp1: ${gp1.x} ${gp1.y}
+gp2: ${gp2.x} ${gp2.y}
+直线距离: ${gDistance}
+直角边距离: ${gRightAngleDistance}
+GAUSS直线距离/GCJ02直线距离: ${gDistance / distance}
+`;
+
+        driving.search(
+          new AMap.LngLat(p1.getLng(), p1.getLat()),
+          new AMap.LngLat(p2.getLng(), p2.getLat()),
+          (status, result) => {
+            console.log(status, result);
+            const route0 = result.routes[0];
+            if (route0) {
+              info.innerText = info.innerText + `
+导航
+导航距离: ${route0.distance}
+导航距离/直角边距离: ${route0.distance / gRightAngleDistance}
+`;
+            }
+
+          }
+        );
+      }
+
+      function wgs84ToGauss(longitude, latitude) {
+        let b; //纬度度数
+        let L; //经度度数
+        let L0; //中央经线度数
+        let L1; //L - L0
+        let t; //tanB
+        let m; //ltanB
+        let N; //卯酉圈曲率半径
+        let q2;
+        let X; // 高斯平面纵坐标
+        let Y; // 高斯平面横坐标
+        let s; // 赤道至纬度B的经线弧长
+        let f; // 参考椭球体扁率
+        let e2; // 椭球第一偏心率
+        let a; // 参考椭球体长半轴
+
+        let a1;
+        let a2;
+        let a3;
+        let a4;
+        let b1;
+        let b2;
+        let b3;
+        let b4;
+        let c0;
+        let c1;
+        let c2;
+        let c3;
+
+        let datum, prjno, zonewide;
+        let IPI;
+
+        datum = 84; // 投影基准面类型：北京54基准面为54，西安80基准面为80，WGS84基准面为84
+        prjno = 0; // 投影带号
+        zonewide = 3;
+        IPI = 0.0174532925199433333333; // 3.1415926535898/180.0
+        b = latitude; //纬度
+        L = longitude; //经度
+        if (zonewide == 6) {
+          prjno = Math.trunc(L / zonewide) + 1;
+          L0 = prjno * zonewide - 3;
+        } else {
+          prjno = Math.trunc((L - 1.5) / 3) + 1;
+          L0 = prjno * 3;
+        }
+        if (datum == 54) {
+          a = 6378245;
+          f = 1 / 298.3;
+        } else if (datum == 84) {
+          a = 6378137;
+          f = 1 / 298.257223563;
+        }
+
+        L0 = L0 * IPI;
+        L = L * IPI;
+        b = b * IPI;
+
+        e2 = 2 * f - f * f; // (a*a-b*b)/(a*a);
+        L1 = L - L0;
+        t = Math.tan(b);
+        m = L1 * Math.cos(b);
+        N = a / Math.sqrt(1 - e2 * Math.sin(b) * Math.sin(b));
+        q2 = (e2 / (1 - e2)) * Math.cos(b) * Math.cos(b);
+        a1 =
+          1 +
+          (3 / 4) * e2 +
+          (45 / 64) * e2 * e2 +
+          (175 / 256) * e2 * e2 * e2 +
+          (11025 / 16384) * e2 * e2 * e2 * e2 +
+          (43659 / 65536) * e2 * e2 * e2 * e2 * e2;
+        a2 =
+          (3 / 4) * e2 +
+          (15 / 16) * e2 * e2 +
+          (525 / 512) * e2 * e2 * e2 +
+          (2205 / 2048) * e2 * e2 * e2 * e2 +
+          (72765 / 65536) * e2 * e2 * e2 * e2 * e2;
+        a3 =
+          (15 / 64) * e2 * e2 +
+          (105 / 256) * e2 * e2 * e2 +
+          (2205 / 4096) * e2 * e2 * e2 * e2 +
+          (10359 / 16384) * e2 * e2 * e2 * e2 * e2;
+        a4 =
+          (35 / 512) * e2 * e2 * e2 +
+          (315 / 2048) * e2 * e2 * e2 * e2 +
+          (31185 / 13072) * e2 * e2 * e2 * e2 * e2;
+        b1 = a1 * a * (1 - e2);
+        b2 = (-1 / 2) * a2 * a * (1 - e2);
+        b3 = (1 / 4) * a3 * a * (1 - e2);
+        b4 = (-1 / 6) * a4 * a * (1 - e2);
+        c0 = b1;
+        c1 = 2 * b2 + 4 * b3 + 6 * b4;
+        c2 = -(8 * b3 + 32 * b4);
+        c3 = 32 * b4;
+        s =
+          c0 * b +
+          Math.cos(b) *
+            (c1 * Math.sin(b) +
+              c2 * Math.sin(b) * Math.sin(b) * Math.sin(b) +
+              c3 * Math.sin(b) * Math.sin(b) * Math.sin(b) * Math.sin(b) * Math.sin(b));
+        X =
+          s +
+          (1 / 2) * N * t * m * m +
+          (1 / 24) * (5 - t * t + 9 * q2 + 4 * q2 * q2) * N * t * m * m * m * m +
+          (1 / 720) * (61 - 58 * t * t + t * t * t * t) * N * t * m * m * m * m * m * m;
+        Y =
+          N * m +
+          (1 / 6) * (1 - t * t + q2) * N * m * m * m +
+          (1 / 120) *
+            (5 - 18 * t * t + t * t * t * t - 14 * q2 - 58 * q2 * t * t) *
+            N *
+            m *
+            m *
+            m *
+            m *
+            m;
+        Y = Y + 1000000 * prjno + 500000;
+
+        return {
+          x: X,
+          y: Y,
+          z: 0,
+        };
+      }
+    </script>
+  </body>
+</html>

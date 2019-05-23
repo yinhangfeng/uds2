@@ -1,0 +1,41 @@
+plugins {
+    id 'java'
+    id 'java-library'
+    id 'maven-publish'
+}
+
+group 'com.mrwind.uds'
+version '0.0.1'
+
+sourceCompatibility = 1.8
+
+dependencies {
+}
+
+task sourcesJar(type: Jar) {
+    from sourceSets.main.allJava
+    classifier = 'sources'
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            artifactId = 'uds'
+            from components.java
+            artifact sourcesJar
+            pom {
+                name = 'uds'
+                description = 'uds'
+            }
+        }
+    }
+    repositories {
+        maven {
+            url = 'http://nexus.timehouse.build/repository/maven-releases'
+            credentials {
+                username = 'admin'
+                password = 'admin123'
+            }
+        }
+    }
+}

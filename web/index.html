@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="chrome=1" />
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no, width=device-width" />
+    <style>
+      html,
+      body,
+      #container {
+        height: 100%;
+        padding: 0;
+        margin: 0;
+      }
+      .info {
+        position: absolute;
+        width: 150px;
+        height: 160px;
+        right: 0;
+        bottom: 0;
+        background-color: #fff;
+        padding: 20px;
+        margin: 0px;
+      }
+    </style>
+    <title>TSP</title>
+  </head>
+  <body>
+    <div id="container"></div>
+    <pre class="info"></pre>
+    <script src="https://webapi.amap.com/maps?v=1.4.10&key=c453cc05a143cb2c905212d766126340&plugin=AMap.Driving&plugin=Map3D"></script>
+    <script src="/web/common.js"></script>
+    <script type="text/javascript">
+      const info = document.querySelector('.info');
+      //初始化地图对象，加载地图
+      const map = new AMap.Map('container', {
+        viewMode: '3D',
+        resizeEnable: true,
+        zoom: 13,
+        mapStyle: 'amap://styles/dark',
+      });
+
+      async function fetchData() {
+        const search = location.search.slice(1).split('&');
+        const file = search[0] ? search[0].split('=')[1] : 'tsp.json';
+        const res = await fetch(`/outputs/${file}`);
+        return res.json();
+      }
+
+      async function drawResult() {
+        const res = await fetchData();
+
+        drawTsp(res);
+
+        info.innerText = `总距离: ${res.length}`;
+      }
+
+      function drawTsp({ length, tour }) {
+        let point;
+        const polylinePath = [];
+        for (let i = 0; i < tour.length; ++i) {
+          point = tour[i];
+          const color = getColor(point.parent < 0 ? i : point.parent);
+    
+          const circleMarker = new AMap.CircleMarker({
+            center: [point.lng, point.lat],
+            radius: point.parent < 0 ? 10 : 6,
+            fillColor: color,
+            strokeColor: i == 0 ? '#00c853' : point.parent < 0 ? '#ffd600' : '#888',
+            strokeWeight: i == 0 ? 3 : 1,
+            zIndex: 10,
+            fillOpacity: 1,
+          });
+          map.add(circleMarker);
+
+          polylinePath.push([point.lng, point.lat]);
+        }
+
+        const polyline = new AMap.Polyline({
+          path: polylinePath,
+          borderWeight: 1,
+          strokeColor: '#03a9f4',
+          lineJoin: 'round',
+          zIndex: 1,
+        });
+        map.add(polyline);
+
+        map.setFitView([ polyline ]);
+      }
+
+      drawResult();
+    </script>
+  </body>
+</html>
