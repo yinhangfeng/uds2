@@ -1,5 +1,7 @@
 package com.mrwind.uds;
 
+import com.mrwind.uds.tsp.TSPResponse;
+
 import java.util.List;
 
 public class Driver implements Cloneable {
@@ -21,6 +23,8 @@ public class Driver implements Cloneable {
     public long workEndTime;
     // 已分配的运单 不可重新分配
     public List<Shipment> allocatedShipments;
+    // 内部使用 已分配点的路径缓存
+    public TSPResponse allocatedTSPResponseCache;
 
     public String getId() {
         return id;

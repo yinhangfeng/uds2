@@ -1,5 +1,6 @@
 package com.mrwind.uds;
 
+import com.mrwind.uds.stat.SimpleEvolutionResult;
 import com.mrwind.uds.tsp.TSPResponse;
 
 import java.util.ArrayList;
@@ -24,5 +25,6 @@ public class Response {
     public List<Driver> driverList;
     public List<Shipment> shipmentList;
     public List<DriverAllocation> driverAllocations;
+    public List<SimpleEvolutionResult> evolutionResults;
 
 }

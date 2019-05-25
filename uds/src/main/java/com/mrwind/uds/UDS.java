@@ -1,11 +1,15 @@
 package com.mrwind.uds;
 
+import com.mrwind.uds.stat.EvolutionResultStatistics;
 import com.mrwind.uds.tsp.AntColonyTSP;
 import com.mrwind.uds.tsp.TSPResponse;
 import io.jenetics.Genotype;
 import io.jenetics.IntegerGene;
+import io.jenetics.Optimize;
 import io.jenetics.engine.Engine;
 import io.jenetics.engine.EvolutionResult;
+import io.jenetics.engine.EvolutionStatistics;
+import io.jenetics.stat.DoubleMomentStatistics;
 import io.jenetics.util.Factory;
 
 import java.util.ArrayList;
@@ -50,43 +54,65 @@ public class UDS {
                 Driver driver = driverList.get(i);
                 Response.DriverAllocation driverAllocation = driverAllocations.get(i);
                 List<Shipment> driverShipments = driverAllocation.shipmentList;
-                if (driver.getAllocatedShipments() != null) {
-                    driverShipments.addAll(driver.getAllocatedShipments());
+                List<Shipment> allocatedShipments = driver.getAllocatedShipments();
+                if (allocatedShipments != null) {
+                    driverShipments.addAll(allocatedShipments);
                 }
 
-                antColonyTSP = AntColonyTSP.obtain(AntColonyTSP.getDriverAndShipmentsPointCount(driver, driverShipments))
-                        .distance(distance)
-                        .driverAndShipments(driver, driverShipments);
-                TSPResponse tspResponse = antColonyTSP.run();
-                antColonyTSP.recycle();
+                if (!driverShipments.isEmpty()) {
+                    TSPResponse tspResponse;
+                    if (allocatedShipments != null && allocatedShipments.size() == driverShipments.size() && driver.allocatedTSPResponseCache != null) {
+                        tspResponse = driver.allocatedTSPResponseCache;
+                    } else {
+                        antColonyTSP = AntColonyTSP.obtain(AntColonyTSP.getDriverAndShipmentsPointCount(driver, driverShipments))
+                                .distance(distance)
+                                .driverAndShipments(driver, driverShipments);
+                        tspResponse = antColonyTSP.run();
+                        antColonyTSP.recycle();
+                    }
 
-                driverAllocation.response = tspResponse;
-                result += tspResponse.length;
+                    driverAllocation.response = tspResponse;
+                    result += tspResponse.length;
+                }
             }
 
             Response response = new Response();
             response.driverAllocations = driverAllocations;
             chromosome.response = response;
 
-            System.out.println("fitness " + (-result) + " " + Thread.currentThread().getName());
+//            System.out.println("fitness " + result + " " + Thread.currentThread().getName());
 
-            return -result;
+            return result;
         }, gtf)
-                .populationSize(50)
-//                .offspringFraction(0.95)
+                .populationSize(100)
+                .optimize(Optimize.MINIMUM)
+                // 一个司机分配到超过 30 单的概率比较低 所以一般不需要 phenotypeValidator
+//                .phenotypeValidator(new PhenotypeValidator(30))
+//                .maximalPhenotypeAge(20)
+//                .offspringFraction(0.9)
 //                .executor(Runnable::run)
                 .build();
 
+        EvolutionStatistics<Double, DoubleMomentStatistics> statistics =
+                EvolutionStatistics.ofNumber();
 
-        Genotype<IntegerGene> resultGenotype = engine.stream().limit(50).collect(EvolutionResult.toBestGenotype());
+        EvolutionResultStatistics<Double> evolutionResultStatistics = new EvolutionResultStatistics();
+
+        Genotype<IntegerGene> resultGenotype = engine.stream()
+                .limit(100)
+                .peek(statistics)
+                .peek(evolutionResultStatistics)
+                .collect(EvolutionResult.toBestGenotype());
 
 //        EvolutionResult result = engine.stream().limit(50).collect(EvolutionResult.toBestEvolutionResult());
 //        Genotype resultGenotype = result.getBestPhenotype().getGenotype();
         Response response = resultGenotype.getChromosome().as(UDSChromosome.class).response;
         response.driverList = driverList;
         response.shipmentList = shipmentList;
+        response.evolutionResults = evolutionResultStatistics.getSimpleEvolutionResults();
 
         System.out.println("result: " + resultGenotype);
+        System.out.println("statistics: " + statistics);
 
 //        System.out.println(Arrays.deepToString(((DistanceImpl) distance).used));
 

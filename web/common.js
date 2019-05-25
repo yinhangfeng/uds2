@@ -28,5 +28,16 @@ function getRandomColor() {
 }
 
 function getColor(index) {
+  index = Number(index);
+  if (Number.isNaN(index)) {
+    index = Math.floor(Math.random() * COLORS.length);
+  }
   return COLORS[Number(index) % COLORS.length];
+}
+
+async function fetchData() {
+  const search = location.search.slice(1).split('&');
+  const file = search[0] ? search[0].split('=')[1] : 'uds.json';
+  const res = await fetch(`/outputs/${file}`);
+  return res.json();
 }

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>uds chart</title>
+    <style>
+      body, html {
+        width: 100%;
+        height: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="main" style="width:100%;height:100%;"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/4.2.1/echarts.min.js"></script>
+    <script src="/web/common.js"></script>
+    <script>
+      async function drawResult() {
+        const { statistics } = await fetchData();
+
+        draw(statistics);
+      }
+
+      function draw({ evolutionResults }) {
+        const myChart = echarts.init(document.getElementById('main'));
+
+        // 指定图表的配置项和数据
+        const option = {
+          title: {
+            text: 'uds',
+          },
+          xAxis: [
+            {
+              type: 'value',
+              scale: true,
+              name: '迭代次数',
+            },
+          ],
+          yAxis: [
+            {
+              type: 'value',
+              scale: true,
+              name: '总里程',
+            },
+          ],
+          tooltip: {
+            trigger: 'axis',
+            axisPointer: {
+              type: 'cross',
+            },
+          },
+          dataZoom: [
+            // {
+            //     id: 'dataZoomX',
+            //     type: 'slider',
+            //     xAxisIndex: [0],
+            //     filterMode: 'filter'
+            // },
+            {
+              id: 'dataZoomY',
+              type: 'slider',
+              yAxisIndex: [0],
+              // filterMode: 'empty'
+            },
+            {
+              type: 'inside',
+              yAxisIndex: [0],
+            },
+          ],
+          series: [
+            {
+              name: 'scatter',
+              type: 'scatter',
+              symbolSize: 3,
+              data: evolutionResults.reduce((res, v, i) => {
+                res = res.concat(
+                  v.fitnessList
+                    .map(it => [i, it])
+                );
+                return res;
+              }, []),
+            },
+          ],
+        };
+
+        myChart.setOption(option);
+      }
+
+      drawResult();
+    </script>
+  </body>
+</html>

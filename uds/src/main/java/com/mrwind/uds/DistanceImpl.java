@@ -11,7 +11,7 @@ public class DistanceImpl implements Distance {
     private boolean rightAngleDistance = true;
     // 距离矩阵 i j 相同为 -1
     private double distance[][];
-    public boolean used[][];
+//    public boolean used[][];
 
     public DistanceImpl(List<Point> points, boolean rightAngleDistance) {
         initDistance(points, rightAngleDistance, 0);
@@ -35,7 +35,7 @@ public class DistanceImpl implements Distance {
     private void initDistance(List<Point> points, boolean rightAngleDistance, int driverEndIndex) {
         int pointCount = points.size();
         distance = new double[pointCount][pointCount];
-        used = new boolean[pointCount][pointCount];
+//        used = new boolean[pointCount][pointCount];
         double weight;
         for (int i = 0; i < pointCount; ++i) {
             distance[i][i] = -1;
@@ -60,7 +60,7 @@ public class DistanceImpl implements Distance {
 
     @Override
     public double getDistance(Point p1, Point p2) {
-        used[p1.pointIndex][p2.pointIndex] = true;
+//        used[p1.pointIndex][p2.pointIndex] = true;
         return distance[p1.pointIndex][p2.pointIndex];
     }
 }

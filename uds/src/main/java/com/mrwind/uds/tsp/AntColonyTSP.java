@@ -32,7 +32,7 @@ public class AntColonyTSP {
     // 初始信息素 应该用平均路程距离的倒数?
     private double initialPheromone = -1;
 
-    private int pointCount;
+    private int pointCount = -1;
     private int startPointIndex = RANDOM_POINT_INDEX;
     private int endPointIndex = END_EQ_START_POINT_INDEX;
     private Distance distance;
@@ -68,7 +68,7 @@ public class AntColonyTSP {
         if (pointCount < 1) {
             throw new IllegalArgumentException("pointCount < 1");
         }
-        this.allocPointCount = this.pointCount = pointCount;
+        this.allocPointCount = pointCount;
         antCount = (int) (pointCount * antFactor);
         points = new TSPPoint[pointCount];
 
@@ -199,11 +199,19 @@ public class AntColonyTSP {
     }
 
     public TSPResponse run() {
-        if (this.pointCount == 0) {
+        if (pointCount < 0) {
             throw new IllegalStateException("points not set");
         }
-        if (this.distance == null) {
+        if (distance == null) {
             throw new IllegalStateException("distance not set");
+        }
+
+        if (pointCount < 2) {
+            TSPResponse response = new TSPResponse();
+            if (pointCount == 1) {
+                response.tour = new int[]{0};
+            }
+            return response;
         }
 
         int maxExhaustiveCount = MAX_EXHAUSTIVE_COUNT;
@@ -320,9 +328,9 @@ public class AntColonyTSP {
         // 目前不支持优化终点回到起点 所以 pointCount - 1
         double newBestLength = Greedy.greedyTour(tour, bestLength, endEqStart ? pointCount - 1 : pointCount, distance, points);
 
-        if (newBestLength < bestLength) {
-            System.out.println("greedyTour 得到了更优的路径: " + newBestLength + " " + Arrays.toString(tour) + " old bestTour: " + bestLength + " " + Arrays.toString(bestTour));
-        }
+//        if (newBestLength < bestLength) {
+//            System.out.println("greedyTour 得到了更优的路径: " + newBestLength + " " + Arrays.toString(tour) + " old bestTour: " + bestLength + " " + Arrays.toString(bestTour));
+//        }
 
 //        double l1 = 0;
 //        double l2 = 0;
@@ -541,9 +549,9 @@ public class AntColonyTSP {
     /**
      * 递归穷举路径
      *
-     * @param currentIndex    当前路径 index
-     * @param ant             记录当前路径 路径长度 与各节点访问状态
-     * @param bestRes         结果输出参数
+     * @param currentIndex 当前路径 index
+     * @param ant          记录当前路径 路径长度 与各节点访问状态
+     * @param bestRes      结果输出参数
      */
     private void recursiveTSP(int currentIndex, Ant ant, TSPResponse bestRes) {
         int prevIndex = currentIndex - 1;
@@ -626,7 +634,7 @@ public class AntColonyTSP {
             return;
         }
         distance = null;
-        pointCount = 0;
+        pointCount = -1;
         for (TSPPoint point : points) {
             if (point != null) {
                 point.point = null;

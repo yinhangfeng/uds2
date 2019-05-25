@@ -23,7 +23,7 @@
         margin: 0px;
       }
     </style>
-    <title>TSP</title>
+    <title>uds map</title>
   </head>
   <body>
     <div id="container"></div>
@@ -40,13 +40,6 @@
         mapStyle: 'amap://styles/dark',
       });
 
-      async function fetchData() {
-        const search = location.search.slice(1).split('&');
-        const file = search[0] ? search[0].split('=')[1] : 'uds.json';
-        const res = await fetch(`/outputs/${file}`);
-        return res.json();
-      }
-
       async function drawResult() {
         const {
           driverList,
@@ -62,7 +55,11 @@
         // info.innerText = `总距离: ${res.length}`;
       }
 
-      function drawDriverAllocation(driver, { shipmentList, response: { tour } }) {
+      function drawDriverAllocation(driver, { shipmentList, response }) {
+        if (!shipmentList.length) {
+          return;
+        }
+        const { tour } = response;
         const color = getColor(driver.id);
 
         driver.pos.isStart = true;
