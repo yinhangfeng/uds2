@@ -1,4 +1,6 @@
-package com.mrwind.uds.common;
+package com.mrwind.uds.util;
+
+import com.mrwind.uds.Point;
 
 import java.util.List;
 

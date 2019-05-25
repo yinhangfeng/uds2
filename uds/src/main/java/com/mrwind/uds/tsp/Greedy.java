@@ -1,6 +1,7 @@
 package com.mrwind.uds.tsp;
 
-import java.util.Arrays;
+import com.mrwind.uds.Distance;
+import com.mrwind.uds.TSPPoint;
 
 class Greedy {
     /**
@@ -9,13 +10,13 @@ class Greedy {
      * @param tour       原始路径 如果找到更优的路劲会被修改
      * @param length     原路径长度
      * @param pointCount 点数
-     * @param distance   距离矩阵
-     * @param tree       点之间关系数组
+     * @param distance   距离
+     * @param points     点之间关系数组
      * @return 新的路劲长度 比原来小说明有子路径翻转了
      * <p>
      * 暂不支持终点返回起点
      */
-    static double greedyTour(int[] tour, double length, int pointCount, double[][] distance, int[] tree) {
+    static double greedyTour(int[] tour, double length, int pointCount, Distance distance, TSPPoint[] points) {
 //        System.out.println("greedyTour length: " + length + " pointCount: " + pointCount + " distance: " + Arrays.deepToString(distance) + " tree: " + Arrays.toString(tree));
 
         int i;
@@ -25,27 +26,30 @@ class Greedy {
         double newLength;
         double iBeforeDistance;
         boolean jIsLast;
-        int parent;
+        int dependency;
 
         int iteration = 0;
         while (!localMaxima && iteration++ < 16) {
             localMaxima = true;
             for (i = 1; i < pointCount - 1; ++i) {
-                iBeforeDistance = distance[tour[i - 1]][tour[i]];
+                iBeforeDistance = distance.getDistance(points[tour[i - 1]], points[tour[i]]);
                 loopJ:
                 for (j = i + 1; j < pointCount; ++j) {
-                    parent = tree[tour[j]];
-                    if (parent >= 0) {
+                    dependency = points[tour[j]].dependency;
+                    if (dependency >= 0) {
                         for (k = i; k < j; ++k) {
                             // i 到 j 之间有点依赖关系 不能翻转
-                            if (tour[k] == parent) {
+                            if (tour[k] == dependency) {
                                 break loopJ;
                             }
                         }
                     }
                     jIsLast = j + 1 == pointCount;
                     // 暂不支持终点返回起点 所以最后一个点与后一个点的距离为 0
-                    newLength = length - iBeforeDistance - (jIsLast ? 0 : distance[tour[j]][tour[j + 1]]) + distance[tour[i - 1]][tour[j]] + (jIsLast ? 0 : distance[tour[i]][tour[j + 1]]);
+                    newLength = length - iBeforeDistance
+                            - (jIsLast ? 0 : distance.getDistance(points[tour[j]], points[tour[j + 1]]))
+                            + distance.getDistance(points[tour[i - 1]], points[tour[j]])
+                            + (jIsLast ? 0 : distance.getDistance(points[tour[i]], points[tour[j + 1]]));
                     if (newLength < length) {
 //                        System.out.println("greedyTour newLength: " + newLength + " length: " + length + " i: " + i + " j: " + j
 //                                + " i - 1 -> i: " + iBeforeDistance + " j -> j + 1: " + (jIsLast ? 0 : distance[tour[j]][tour[j + 1]])

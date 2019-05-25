@@ -11,7 +11,7 @@ class Point {
   double lng;
   long startTime; // 任务开始时间 早于这个时间到达可能需等待
   long endTime; // 任务结束时间 晚于这个时间到达会产生额外代价 endTime > startTime
-  Point parent; // 父任务点 必须先到父任务点再到当前点 parent.endTime > endTime
+  Point dependency; // 父任务点 必须先到父任务点再到当前点 dependency.endTime > endTime
 }
 ```
 
@@ -19,7 +19,7 @@ class Point {
 ```java
 class Driver {
   Point pos; // 配送员当前位置 posj 无 startTime endTime 限制
-  Point home; // 配送员回程点 homej 无 startTime endTime 限制(?) parent 为 posj
+  Point home; // 配送员回程点 homej 无 startTime endTime 限制(?) dependency 为 posj
   int maxOrderNum; // 最大单量
   int maxMileage; // 最大里程(米)
   int load; // 最大容量(计费单位)
@@ -32,8 +32,8 @@ class Driver {
 ```java
 class Shipment {
   int weight; // 重量
-  Point sender; // 发送点
-  Point receiver; // 收货点 receiver.parent == sender receiver.endTime > sender.endTime
+  Point sender; // 发货点
+  Point receiver; // 收货点 receiver.dependency == sender receiver.endTime > sender.endTime
 }
 ```
 

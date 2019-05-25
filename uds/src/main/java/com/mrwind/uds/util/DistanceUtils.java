@@ -1,6 +1,8 @@
-package com.mrwind.uds.common;
+package com.mrwind.uds.util;
 
-public class Distance {
+import com.mrwind.uds.Point;
+
+public class DistanceUtils {
 
     /**
      * 获取直线距离

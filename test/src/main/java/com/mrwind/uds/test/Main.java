@@ -80,6 +80,8 @@ public class Main {
 
     public static void main(String[] args) throws Exception {
 
-        test1();
+//        test1();
+
+        TSPTest.main(args);
     }
 }

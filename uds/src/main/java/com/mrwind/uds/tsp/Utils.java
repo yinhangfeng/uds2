@@ -1,6 +1,6 @@
 package com.mrwind.uds.tsp;
 
-import com.mrwind.uds.common.Point;
+import com.mrwind.uds.Point;
 
 import java.util.List;
 
@@ -13,9 +13,9 @@ class Utils {
 //            distanceMatrix[i][i] = -1;
 //            for (int j = i + 1; j < pointCount; ++j) {
 //                if (rightAngleDistance) {
-//                    weight = Distance.getRightAngleDistance(points.get(i), points.get(j));
+//                    weight = DistanceUtils.getRightAngleDistance(points.get(i), points.get(j));
 //                } else {
-//                    weight = Distance.getDistance(points.get(i), points.get(j));
+//                    weight = DistanceUtils.getDistance(points.get(i), points.get(j));
 //                }
 //                distanceMatrix[i][j] = distanceMatrix[j][i] = weight;
 //            }
@@ -25,7 +25,7 @@ class Utils {
     static void pointsToTree(List<Point> points, int[] tree) {
         int pointCount = points.size();
         for (int i = 0; i < pointCount; ++i) {
-            tree[i] = points.get(i).parent;
+            tree[i] = points.get(i).dependency;
         }
     }
 }
