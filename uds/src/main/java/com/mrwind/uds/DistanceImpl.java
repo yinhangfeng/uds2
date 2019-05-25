@@ -11,7 +11,7 @@ public class DistanceImpl implements Distance {
     private boolean rightAngleDistance = true;
     // 距离矩阵 i j 相同为 -1
     private double distance[][];
-    boolean used[][];
+    public boolean used[][];
 
     public DistanceImpl(List<Point> points, boolean rightAngleDistance) {
         initDistance(points, rightAngleDistance, 0);

@@ -118,4 +118,12 @@ public class CoordinateUtils {
             point.y = Math.round(xy[1]);
         }
     }
+
+    public static void transformPoint(Point point) {
+        double[] xy;
+        xy = CoordinateUtils.geodetic2Gauss(point.lat, point.lng, 3, COORDINATE_WGS84);
+        // 不需要 double 精度 long 就行(精确到米)
+        point.x = Math.round(xy[0]);
+        point.y = Math.round(xy[1]);
+    }
 }

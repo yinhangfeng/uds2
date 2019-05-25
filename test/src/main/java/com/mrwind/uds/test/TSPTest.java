@@ -5,7 +5,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.mrwind.uds.DistanceImpl;
 import com.mrwind.uds.Point;
 import com.mrwind.uds.tsp.AntColonyTSP;
-import com.mrwind.uds.tsp.Response;
+import com.mrwind.uds.tsp.TSPResponse;
 import com.mrwind.uds.util.CoordinateUtils;
 import org.apache.commons.io.FileUtils;
 
@@ -88,11 +88,11 @@ public class TSPTest {
         return allPoints;
     }
 
-    static void output(Response response, List<Point> points) {
+    static void output(TSPResponse response, List<Point> points) {
         output(response, points, "tsp.json");
     }
 
-    static void output(Response response, List<Point> points, String fileName) {
+    static void output(TSPResponse response, List<Point> points, String fileName) {
         JSONObject jsonObject = new JSONObject();
 
         List<Point> tour = new ArrayList<>(points.size());
@@ -131,27 +131,27 @@ public class TSPTest {
         }
     }
 
-    static Response run(AntColonyTSP antColonyTSP, List<Point> points, int startPointIndex, int endPointIndex, int maxIterations) {
+    static TSPResponse run(AntColonyTSP antColonyTSP, List<Point> points, int startPointIndex, int endPointIndex, int maxIterations) {
         long start = System.currentTimeMillis();
-        Response response = antColonyTSP.startPointIndex(startPointIndex).endPointIndex(endPointIndex).maxIterations(maxIterations).points(points).distance(new DistanceImpl(points, true)).run();
+        TSPResponse response = antColonyTSP.startPointIndex(startPointIndex).endPointIndex(endPointIndex).maxIterations(maxIterations).points(points).distance(new DistanceImpl(points, true)).run();
         System.out.println("run time: " + (System.currentTimeMillis() - start));
         System.out.println("run res: " + response);
 
         return response;
     }
 
-    static Response runAco(AntColonyTSP antColonyTSP, List<Point> points, int startPointIndex, int endPointIndex, int maxIterations) {
+    static TSPResponse runAco(AntColonyTSP antColonyTSP, List<Point> points, int startPointIndex, int endPointIndex, int maxIterations) {
         long start = System.currentTimeMillis();
-        Response response = antColonyTSP.startPointIndex(startPointIndex).endPointIndex(endPointIndex).points(points).distance(new DistanceImpl(points, true)).runACO(maxIterations);
+        TSPResponse response = antColonyTSP.startPointIndex(startPointIndex).endPointIndex(endPointIndex).points(points).distance(new DistanceImpl(points, true)).runACO(maxIterations);
         System.out.println("runAco time: " + (System.currentTimeMillis() - start));
         System.out.println("runAco res: " + response);
 
         return response;
     }
 
-    static Response runExhaustive(AntColonyTSP antColonyTSP, List<Point> points, int startPointIndex, int endPointIndex) {
+    static TSPResponse runExhaustive(AntColonyTSP antColonyTSP, List<Point> points, int startPointIndex, int endPointIndex) {
         long start = System.currentTimeMillis();
-        Response response = antColonyTSP.startPointIndex(startPointIndex).endPointIndex(endPointIndex).points(points).distance(new DistanceImpl(points, true)).runExhaustive();
+        TSPResponse response = antColonyTSP.startPointIndex(startPointIndex).endPointIndex(endPointIndex).points(points).distance(new DistanceImpl(points, true)).runExhaustive();
         System.out.println("runExhaustive time: " + (System.currentTimeMillis() - start));
         System.out.println("runExhaustive res: " + response);
 
@@ -201,7 +201,7 @@ public class TSPTest {
         int pointCount = 30;
 
         double bestLength = Integer.MAX_VALUE;
-        Response bestResponse = null;
+        TSPResponse bestResponse = null;
 
         AntColonyTSP antColony = AntColonyTSP.obtain(pointCount);
         AntColonyTSP antColonyTSP1 = antColony;
@@ -212,7 +212,7 @@ public class TSPTest {
             for (int j = 0; j < testCount2; ++j) {
 //                antColonyTSP1 = AntColonyTSP.obtain(pointCount);
                 antColonyTSP1.initialPheromone(1);
-                Response response1 = runAco(antColonyTSP1, points, 0, -1, maxIterations);
+                TSPResponse response1 = runAco(antColonyTSP1, points, 0, -1, maxIterations);
                 res1SumIt += response1.iterationNum;
                 if (response1.length < bestLength) {
                     bestResponse = response1;
@@ -220,7 +220,7 @@ public class TSPTest {
 
 //                antColonyTSP2 = AntColonyTSP.obtain(pointCount);
                 antColonyTSP2.initialPheromone(1 / response1.length);
-                Response response2 = runAco(antColonyTSP2, points, 0, -1, maxIterations);
+                TSPResponse response2 = runAco(antColonyTSP2, points, 0, -1, maxIterations);
                 res2SumIt += response2.iterationNum;
                 if (response2.length < bestLength) {
                     bestResponse = response2;
@@ -243,7 +243,7 @@ public class TSPTest {
         int pointCount = 10;
         List<Point> points = getRandomPoints(pointCount);
         AntColonyTSP antColonyTSP = new AntColonyTSP(pointCount);
-        Response res = run(antColonyTSP, points, 0, -1, maxIterations);
+        TSPResponse res = run(antColonyTSP, points, 0, -1, maxIterations);
 
         output(res, points);
     }
@@ -257,7 +257,7 @@ public class TSPTest {
         points.set(4, points.get(0).clone());
         points.set(3, points.get(2).clone());
         AntColonyTSP antColonyTSP = new AntColonyTSP(pointCount);
-        Response res = runAco(antColonyTSP, points, 0, -1, maxIterations);
+        TSPResponse res = runAco(antColonyTSP, points, 0, -1, maxIterations);
         output(res, points);
     }
 
@@ -274,11 +274,11 @@ public class TSPTest {
 //        points.addAll(getRandomPoints(4, 1));
         AntColonyTSP antColonyTSP = new AntColonyTSP(pointCount, false);
 
-        Response res1 = runExhaustive(antColonyTSP, points, 0, -1);
+        TSPResponse res1 = runExhaustive(antColonyTSP, points, 0, -1);
 
         output(res1, points);
 
-        Response res2 = runAco(antColonyTSP, points, 0, -1, maxIterations);
+        TSPResponse res2 = runAco(antColonyTSP, points, 0, -1, maxIterations);
 
         output(res2, points, "tsp1.json");
 
@@ -291,7 +291,7 @@ public class TSPTest {
 //        int pointCount = 30;
 //        List<Point> points = getRandomPoints(pointCount);
 //        AntColonyTSP antColonyTSP = new AntColonyTSP(pointCount);
-//        Response res = run(antColonyTSP, points, 0, -1, maxIterations);
+//        TSPResponse res = run(antColonyTSP, points, 0, -1, maxIterations);
 //
 //        output(res);
 //
@@ -316,9 +316,9 @@ public class TSPTest {
         int pointCount = points.size();
         AntColonyTSP antColonyTSP = AntColonyTSP.obtain(pointCount);
 //        antColonyTSP.rightAngleDistance(false);
-        Response res = run(antColonyTSP, points, 0, -1, maxIterations);
+        TSPResponse res = run(antColonyTSP, points, 0, -1, maxIterations);
 
-        Response bestRes = res;
+        TSPResponse bestRes = res;
 
 //        for (int i = 0; i < 10; ++i) {
 //            antColonyTSP.initialPheromone(1 / bestRes.length);
@@ -341,7 +341,7 @@ public class TSPTest {
             System.out.println("test6 " + i);
             List<Point> points = allPoints.get(i);
             AntColonyTSP antColonyTSP = AntColonyTSP.obtain(points.size());
-            Response response = antColonyTSP.startPointIndex(points.size() - 1)
+            TSPResponse response = antColonyTSP.startPointIndex(points.size() - 1)
                     .endPointIndex(AntColonyTSP.RANDOM_POINT_INDEX)
                     .initialPheromone(0.001)
                     .maxIterations(Math.min(Math.max(points.size(), 20), 128))

@@ -2,7 +2,7 @@ package com.mrwind.uds.tsp;
 
 import java.util.Arrays;
 
-public class Response {
+public class TSPResponse {
 
     /**
      * 总距离
@@ -21,7 +21,7 @@ public class Response {
 
     @Override
     public String toString() {
-        return "Response{" +
+        return "TSPResponse{" +
                 "length=" + length +
                 ", tour=" + Arrays.toString(tour) +
                 ", endEqStart=" + endEqStart +

@@ -42,31 +42,47 @@
 
       async function fetchData() {
         const search = location.search.slice(1).split('&');
-        const file = search[0] ? search[0].split('=')[1] : 'tsp.json';
+        const file = search[0] ? search[0].split('=')[1] : 'uds.json';
         const res = await fetch(`/outputs/${file}`);
         return res.json();
       }
 
       async function drawResult() {
-        const res = await fetchData();
+        const {
+          driverList,
+          shipmentList,
+          driverAllocations,
+        } = await fetchData();
 
-        drawTsp(res);
-
-        info.innerText = `总距离: ${res.length}`;
+        for (let i = 0; i < driverAllocations.length; ++i) {
+          const driverAllocation = driverAllocations[i];
+          drawDriverAllocation(driverList[i], driverAllocation);
+        }
+ 
+        // info.innerText = `总距离: ${res.length}`;
       }
 
-      function drawTsp({ length, tour }) {
+      function drawDriverAllocation(driver, { shipmentList, response: { tour } }) {
+        const color = getColor(driver.id);
+
+        driver.pos.isStart = true;
+        const points = [driver.pos];
+        for (shipment of shipmentList) {
+          shipment.sender.isSender = true;
+          points.push(shipment.sender);
+          points.push(shipment.receiver);
+        }
+
         let point;
         const polylinePath = [];
         for (let i = 0; i < tour.length; ++i) {
-          point = tour[i];
-          const color = getColor(point.parent < 0 ? i : point.parent);
+          point = points[tour[i]];
     
           const circleMarker = new AMap.CircleMarker({
             center: [point.lng, point.lat],
-            radius: point.parent < 0 ? 10 : 6,
+            radius: point.isStart || point.isSender ? 10 : 5,
             fillColor: color,
-            strokeColor: i == 0 ? '#00c853' : point.parent < 0 ? '#ffd600' : '#888',
+            strokeColor: i == 0 ? '#00c853' : point.isSender ? '#ffd600' : '#888',
             strokeWeight: i == 0 ? 3 : 1,
             zIndex: 10,
             fillOpacity: 1,
@@ -85,7 +101,7 @@
         });
         map.add(polyline);
 
-        map.setFitView([ polyline ]);
+        // map.setFitView([ polyline ]);
       }
 
       drawResult();

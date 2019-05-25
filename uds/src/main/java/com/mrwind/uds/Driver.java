@@ -1,6 +1,9 @@
 package com.mrwind.uds;
 
-public class Driver {
+import java.util.List;
+
+public class Driver implements Cloneable {
+    public String id;
     // 配送员当前位置 无 startTime endTime 限制
     public Point pos;
     // 配送员回程点 无 startTime endTime 限制(?) dependency 为 posj
@@ -16,6 +19,24 @@ public class Driver {
     public long workStartTime;
     // 今天工作结束时间
     public long workEndTime;
+    // 已分配的运单 不可重新分配
+    public List<Shipment> allocatedShipments;
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public List<Shipment> getAllocatedShipments() {
+        return allocatedShipments;
+    }
+
+    public void setAllocatedShipments(List<Shipment> allocatedShipments) {
+        this.allocatedShipments = allocatedShipments;
+    }
 
     public Point getPos() {
         return pos;
@@ -71,5 +92,14 @@ public class Driver {
 
     public void setWorkEndTime(long workEndTime) {
         this.workEndTime = workEndTime;
+    }
+
+    @Override
+    public Driver clone() {
+        try {
+            return (Driver) super.clone();
+        } catch (CloneNotSupportedException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

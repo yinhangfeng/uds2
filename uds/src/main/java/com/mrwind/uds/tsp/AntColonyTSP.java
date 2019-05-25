@@ -86,6 +86,10 @@ public class AntColonyTSP {
         }
     }
 
+    public static int getDriverAndShipmentsPointCount(Driver driver, List<Shipment> shipmentList) {
+        return shipmentList.size() * 2 + 1;
+    }
+
     /**
      * 起点 index
      * 如果为 RANDOM_POINT_INDEX 则默认会随机选择起点
@@ -141,7 +145,7 @@ public class AntColonyTSP {
      * 会同时设置 startIndex endIndex
      */
     public AntColonyTSP driverAndShipments(Driver driver, List<Shipment> shipmentList) {
-        int pointCount = shipmentList.size() * 2 + 1;
+        int pointCount = getDriverAndShipmentsPointCount(driver, shipmentList);
         pointCount(pointCount);
 
         addTSPPoint(driver.pos, 0, -1);
@@ -194,7 +198,7 @@ public class AntColonyTSP {
         return this;
     }
 
-    public Response run() {
+    public TSPResponse run() {
         if (this.pointCount == 0) {
             throw new IllegalStateException("points not set");
         }
@@ -221,7 +225,7 @@ public class AntColonyTSP {
      *
      * @param maxIterations 最大迭代次数
      */
-    public Response runACO(int maxIterations) {
+    public TSPResponse runACO(int maxIterations) {
         initPheromone();
         initEtaPowerBeta();
         updateTauPowerAlphaMultiplyEtaPowerBeta();
@@ -330,7 +334,7 @@ public class AntColonyTSP {
 //        assert Math.abs(l1 - bestLength) < 0.0000001;
 //        assert Math.abs(l2 - newBestLength) < 0.0000001;
 
-        Response response = new Response();
+        TSPResponse response = new TSPResponse();
         response.tour = tour;
         response.length = newBestLength;
         response.endEqStart = endEqStart;
@@ -338,7 +342,7 @@ public class AntColonyTSP {
         return response;
     }
 
-    public Response runACO() {
+    public TSPResponse runACO() {
         return runACO(maxIterations <= 0 ? Math.min(Math.max(pointCount, 10), 100) : maxIterations);
     }
 
@@ -511,12 +515,12 @@ public class AntColonyTSP {
     /**
      * 执行穷举算法
      */
-    public Response runExhaustive() {
+    public TSPResponse runExhaustive() {
         int pointCount = this.pointCount;
         int startPointIndex = this.startPointIndex;
         int endPointIndex = this.endPointIndex;
 
-        Response response = new Response();
+        TSPResponse response = new TSPResponse();
         response.length = Integer.MAX_VALUE;
         response.tour = new int[pointCount];
         response.endEqStart = endPointIndex == END_EQ_START_POINT_INDEX || endPointIndex >= 0 && endPointIndex == startPointIndex;
@@ -541,7 +545,7 @@ public class AntColonyTSP {
      * @param ant             记录当前路径 路径长度 与各节点访问状态
      * @param bestRes         结果输出参数
      */
-    private void recursiveTSP(int currentIndex, Ant ant, Response bestRes) {
+    private void recursiveTSP(int currentIndex, Ant ant, TSPResponse bestRes) {
         int prevIndex = currentIndex - 1;
         int prevPointIndex = prevIndex < 0 ? -1 : ant.tour[prevIndex];
         boolean isEnd = currentIndex == pointCount - 1;

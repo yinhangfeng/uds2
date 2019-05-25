@@ -28,5 +28,5 @@ function getRandomColor() {
 }
 
 function getColor(index) {
-  return COLORS[index % COLORS.length];
+  return COLORS[Number(index) % COLORS.length];
 }

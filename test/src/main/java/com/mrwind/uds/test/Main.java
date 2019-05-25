@@ -1,87 +1,117 @@
 package com.mrwind.uds.test;
 
-import io.jenetics.*;
-import io.jenetics.engine.Engine;
-import io.jenetics.engine.EvolutionResult;
-import io.jenetics.util.Factory;
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson.serializer.SerializerFeature;
+import com.mrwind.uds.*;
+import com.mrwind.uds.util.CoordinateUtils;
+import org.apache.commons.io.FileUtils;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Main {
 
-    // 2.) Definition of the fitness function.
-    private static Integer eval(Genotype<BitGene> gt) {
-        return gt.getChromosome()
-                .as(BitChromosome.class)
-                .bitCount();
+    static int pointId = 0;
+    static int driverId = 0;
+    static int shipmentId = 0;
+
+    static Point getRandomPoint(String id) {
+        float minLng = 120.07f;
+        float maxLng = 120.4f;
+        float minLat = 30.12f;
+        float maxLat = 30.4f;
+        Point point = new Point();
+        String _id = String.valueOf(pointId++);
+        point.id = id == null ? _id : id + "_" + _id;
+
+        if (Math.random() > 0.5) {
+            point.lng = (float) ((minLng + maxLng) / 2 + (1 - Math.random()) * (maxLng - minLng) * Math.random() * 0.4);
+            point.lat = (float) ((minLat + maxLat) / 2 + (1 - Math.random()) * (maxLat - minLat) * Math.random() * 0.4);
+        } else {
+            point.lng = (float) (minLng + Math.random() * (maxLng - minLng));
+            point.lat = (float) (minLat + Math.random() * (maxLat - minLat));
+        }
+        CoordinateUtils.transformPoint(point);
+        return point;
     }
 
-    static void test0() {
-        // 1.) Define the genotype (factory) suitable
-        //     for the problem.
-        Factory<Genotype<BitGene>> gtf =
-                Genotype.of(BitChromosome.of(20, 0.5));
-
-        // 3.) Create the execution environment.
-        Engine<BitGene, Integer> engine = Engine
-                .builder(Main::eval, gtf)
-                .build();
-
-        // 4.) Start the execution (evolution) and
-        //     collect the result.
-        Genotype<BitGene> result = engine.stream()
-                .limit(100)
-                .collect(EvolutionResult.toBestGenotype());
-
-        System.out.println("Hello World:\n" + result);
+    static Point getRandomPoint() {
+        return getRandomPoint(null);
     }
 
-    static Double test1Fitness(Genotype<IntegerGene> gt) {
-        IntegerChromosome chromosome = gt.getChromosome().as(IntegerChromosome.class);
+    static Driver getRandomDriver() {
+        Driver driver = new Driver();
+        String id = String.valueOf(driverId++);
+        driver.setId(id);
+        driver.setPos(getRandomPoint("ds_" + id));
+        return driver;
+    }
 
-        int length = chromosome.length();
-        double sum = 0;
-        for (int i = 0; i < length; ++i) {
-            sum += chromosome.getGene(i).intValue();
+    static Shipment getRandomShipment() {
+        Shipment shipment = new Shipment();
+        String id = String.valueOf(shipmentId++);
+        shipment.setId(id);
+        shipment.setSender(getRandomPoint("ss_" + id));
+        shipment.setReceiver(getRandomPoint("sr_" + id));
+        shipment.setWeight((int) Math.round(Math.random() * 10));
+
+        return shipment;
+    }
+
+    static List<Shipment> getRandomShipments(int count) {
+        List<Shipment> shipments = new ArrayList<>();
+        for (int i = 0; i < count; ++i) {
+            shipments.add(getRandomShipment());
         }
-        double avg = sum / length;
-        double a = 0;
-        for (int i = 0; i < length; ++i) {
-            a += Math.pow(chromosome.getGene(i).intValue() - avg, 2);
+        return shipments;
+    }
+
+    static List<Driver> getRandomDrivers(int count) {
+        List<Driver> drivers = new ArrayList<>();
+        for (int i = 0; i < count; ++i) {
+            drivers.add(getRandomDriver());
         }
-        double v = a / length;
+        return drivers;
+    }
 
-        System.out.println("fitness thread:" + Thread.currentThread().getName() + " sum: " + sum + " avg: " + avg + " v: " + v);
+    static void output(Response response) {
+        output(response, "uds.json");
+    }
 
-        // 目标是使总和最大 也就是最好所有基因都为 9999
-        // 如果只是求和的话 在基因数量比较多时 最终结果没比随机好多少
+    static void output(Response response, String fileName) {
+        JSONObject jsonObject = new JSONObject();
 
-//        try {
-//            Thread.sleep(20);
-//        } catch (InterruptedException e) {
-//            e.printStackTrace();
-//        }
-        return sum;
+        jsonObject.put("driverList", response.driverList);
+        jsonObject.put("shipmentList", response.shipmentList);
+        jsonObject.put("driverAllocations", response.driverAllocations);
+
+        File file = new File("../outputs/" + fileName);
+        try {
+            FileUtils.writeStringToFile(file, JSON.toJSONString(jsonObject, SerializerFeature.DisableCircularReferenceDetect), "utf8");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     static void test1() {
-        Factory<Genotype<IntegerGene>> gtf = Genotype.of(IntegerChromosome.of(0, 9999, 2000));
+        List<Driver> drivers = getRandomDrivers(3);
+        List<Shipment> shipmentList = getRandomShipments(10);
 
-        // 对于低代价的 fitness 函数 使用多线程反而会减速
-        Engine<IntegerGene, Double> engine = Engine.builder(Main::test1Fitness, gtf)
-                .populationSize(1000)
-                .offspringFraction(0.95)
-                .executor(Runnable::run)
-                .build();
+        UDS uds = new UDS();
 
-        Genotype<IntegerGene> result = engine.stream().limit(100).collect(EvolutionResult.toBestGenotype());
+        Response response = uds.run(drivers, shipmentList);
 
-        System.out.println("result:\n" + result);
-        test1Fitness(result);
+        output(response);
     }
 
     public static void main(String[] args) throws Exception {
 
-//        test1();
+        test1();
 
-        TSPTest.main(args);
+//        TSPTest.main(args);
+//        JeneticsTest.main(args);
     }
 }

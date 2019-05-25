@@ -4,12 +4,31 @@ package com.mrwind.uds;
  * 运单
  */
 public class Shipment {
+    public String id;
     // 重量
     public int weight;
     // 发货点
     public Point sender;
     // 收货点 receiver.dependency == sender receiver.endTime > sender.endTime
     public Point receiver;
+    // 如果运单已近非配给配送员 是否可以重新分配
+    public boolean canRedistribution;
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public boolean isCanRedistribution() {
+        return canRedistribution;
+    }
+
+    public void setCanRedistribution(boolean canRedistribution) {
+        this.canRedistribution = canRedistribution;
+    }
 
     public int getWeight() {
         return weight;

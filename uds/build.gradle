@@ -10,6 +10,7 @@ version '0.0.1'
 sourceCompatibility = 1.8
 
 dependencies {
+    implementation 'io.jenetics:jenetics:4.4.0'
 }
 
 task sourcesJar(type: Jar) {
