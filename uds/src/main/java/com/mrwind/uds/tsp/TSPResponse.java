@@ -1,6 +1,9 @@
 package com.mrwind.uds.tsp;
 
+import com.mrwind.uds.Point;
+
 import java.util.Arrays;
+import java.util.List;
 
 public class TSPResponse {
 
@@ -24,6 +27,7 @@ public class TSPResponse {
      * 产生最佳结果的迭代次数
      */
     public int iterationNum;
+    public List<Point> originalPoints;
 
     @Override
     public String toString() {

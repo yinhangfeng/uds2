@@ -44,6 +44,7 @@ public class Shipment {
 
     public void setSender(Point sender) {
         this.sender = sender;
+        sender.type = Point.TYPE_SENDER;
     }
 
     public Point getReceiver() {
@@ -52,5 +53,6 @@ public class Shipment {
 
     public void setReceiver(Point receiver) {
         this.receiver = receiver;
+        receiver.type = Point.TYPE_RECEIVER;
     }
 }

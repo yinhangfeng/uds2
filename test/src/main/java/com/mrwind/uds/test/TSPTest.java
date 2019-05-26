@@ -2,16 +2,21 @@ package com.mrwind.uds.test;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.mrwind.uds.DistanceImpl;
-import com.mrwind.uds.Point;
+import com.mrwind.uds.*;
 import com.mrwind.uds.tsp.AntColonyTSP;
+import com.mrwind.uds.tsp.DriverTimeSelector;
 import com.mrwind.uds.tsp.TSPResponse;
 import com.mrwind.uds.util.CoordinateUtils;
 import org.apache.commons.io.FileUtils;
 
 import java.io.File;
 import java.io.IOException;
+import java.sql.Date;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Collections;
 import java.util.List;
 
 public class TSPTest {
@@ -366,15 +371,102 @@ public class TSPTest {
 //        output(res);
     }
 
+    static void numberTest() {
+        double a = 1;
+        double b = a / 0;
+
+        double c = Double.MAX_VALUE;
+        double d = AntColonyTSP.MAX_VALUE;
+
+        double e = d * 100000000;
+        double f = Double.MAX_VALUE + Double.MAX_VALUE;
+        double g = Double.MAX_VALUE * 10;
+        double h = 1 / d;
+
+        System.out.println(" " + a + " " + b + "");
+    }
+
+    static void test7() throws Exception {
+        Driver driver = Main.getRandomDriver();
+
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm");
+
+        driver.workStartTime = simpleDateFormat.parse("2019-05-26 08:00").getTime();
+        List<Shipment> shipmentList = Main.getRandomShipments(4);
+
+        shipmentList.get(0).getSender().startTime = simpleDateFormat.parse("2019-05-26 09:00").getTime();
+        shipmentList.get(0).getSender().endTime = simpleDateFormat.parse("2019-05-26 10:00").getTime();
+        shipmentList.get(0).getReceiver().startTime = simpleDateFormat.parse("2019-05-26 10:00").getTime();
+        shipmentList.get(0).getReceiver().endTime = simpleDateFormat.parse("2019-05-26 14:00").getTime();
+
+        shipmentList.get(1).getSender().startTime = simpleDateFormat.parse("2019-05-26 09:00").getTime();
+        shipmentList.get(1).getSender().endTime = simpleDateFormat.parse("2019-05-26 11:00").getTime();
+        shipmentList.get(1).getReceiver().startTime = simpleDateFormat.parse("2019-05-26 13:00").getTime();
+        shipmentList.get(1).getReceiver().endTime = simpleDateFormat.parse("2019-05-26 14:10").getTime();
+
+        shipmentList.get(2).getSender().startTime = simpleDateFormat.parse("2019-05-26 14:00").getTime();
+        shipmentList.get(2).getSender().endTime = simpleDateFormat.parse("2019-05-26 15:00").getTime();
+        shipmentList.get(2).getReceiver().startTime = simpleDateFormat.parse("2019-05-26 15:00").getTime();
+        shipmentList.get(2).getReceiver().endTime = simpleDateFormat.parse("2019-05-26 17:00").getTime();
+
+        Main.outputInputData(Collections.singletonList(driver), shipmentList, "tspInput1.json");
+
+        AntColonyTSP antColonyTSP = AntColonyTSP.obtain(driver, shipmentList);
+
+        long currentTime = simpleDateFormat.parse("2019-05-26 7:00").getTime();
+
+        TSPResponse response = antColonyTSP
+//                .startPointIndex(0)
+//                .endPointIndex(AntColonyTSP.RANDOM_POINT_INDEX)
+                .distance(new DistanceImpl(driver, shipmentList, true))
+                .selector(new DriverTimeSelector(driver, currentTime))
+                .run();
+
+        antColonyTSP.recycle();
+
+        System.out.println(response);
+
+        output(response, response.originalPoints);
+    }
+
+    static void test8() throws Exception {
+        Response data = Main.getInputDataFromFile("tspInput1.json");
+
+        Driver driver = data.driverList.get(0);
+        List<Shipment> shipmentList = data.shipmentList;
+
+        AntColonyTSP antColonyTSP = AntColonyTSP.obtain(driver, shipmentList);
+
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm");
+        long currentTime = simpleDateFormat.parse("2019-05-26 7:00").getTime();
+
+        TSPResponse response = antColonyTSP
+                .startPointIndex(0)
+                .endPointIndex(AntColonyTSP.RANDOM_POINT_INDEX)
+                .distance(new DistanceImpl(driver, shipmentList, true))
+                .selector(new DriverTimeSelector(driver, currentTime))
+                .run();
+
+        antColonyTSP.recycle();
+
+        System.out.println(response);
+//        System.out.println(response.originalPoints);
+
+        output(response, response.originalPoints);
+    }
+
     public static void main(String[] args) throws Exception {
 
 //        test();
 //        test1();
 //        test2();
 //        test3();
-        test4();
+//        test4();
 //        test5();
 //        test6();
-        testObtain();
+//        testObtain();
+
+//        test7();
+        test8();
     }
 }

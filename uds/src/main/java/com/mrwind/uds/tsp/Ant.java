@@ -30,6 +30,7 @@ class Ant {
     void clear() {
         Arrays.fill(visited, (byte) 0);
         length = 0;
+        fitness = 0;
     }
 
     void copyTour(int[] out) {

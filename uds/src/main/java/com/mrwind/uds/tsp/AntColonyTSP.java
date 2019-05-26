@@ -23,7 +23,9 @@ public class AntColonyTSP {
     // 使用穷举方式计算的最大点数
     // 点数对应时间 8: 9ms, 9: 37ms, 10: 293ms, 11: 2299ms, 12: 35034ms
     public static int MAX_EXHAUSTIVE_COUNT = 8;
-    private static double MAX_ETA_POWER_BETA = Integer.MAX_VALUE;
+    // 最大的数值 防止计算中出现数值上溢
+    public static final double MAX_VALUE = ((double) Integer.MAX_VALUE) * 1000;
+    private static double MAX_ETA_POWER_BETA = MAX_VALUE;
 
     private double alpha = 1;
     private double beta = 2;
@@ -38,6 +40,7 @@ public class AntColonyTSP {
     private Distance distance;
     private int maxIterations;
     private Selector selector = Selector.LENGTH_SELECTOR;
+    private List<Point> originalPoints;
 
     private final int allocPointCount;
     private TSPPoint[] points;
@@ -45,15 +48,15 @@ public class AntColonyTSP {
     private Ant[] ants;
     private int[] tempTour;
     // 信息素矩阵
-    private double pheromone[][];
+    private double[][] pheromone;
     // 能见度缓存 etaPowerBeta[i][j] = (1 / distance[i][j]) ^ beta
     // MAX_ETA_POWER_BETA 表示 distance[i][j] 为 0
-    private double etaPowerBeta[][];
+    private double[][] etaPowerBeta;
     // 权重缓存(信息素强度与能见度的幂乘积) tauPowerAlphaMultiplyEtaPowerBeta[i][j] = pheromone[i][j] ^ alpha * etaPowerBeta[i][j];
     // 每次信息素更新之后都会被清空
-    private double tauPowerAlphaMultiplyEtaPowerBeta[][];
+    private double[][] tauPowerAlphaMultiplyEtaPowerBeta;
     // 下一步点的权重 所有蚂蚁公用的数组
-    private double tempWeights[];
+    private double[] tempWeights;
     private Random random;
 
     public AntColonyTSP(int pointCount) {
@@ -130,6 +133,8 @@ public class AntColonyTSP {
             }
             addTSPPoint(point, i, point.dependency);
         }
+
+        originalPoints = points;
         return this;
     }
 
@@ -167,6 +172,11 @@ public class AntColonyTSP {
         startPointIndex(0);
         // TODO
         endPointIndex(RANDOM_POINT_INDEX);
+
+        originalPoints = new ArrayList<>(pointCount);
+        for (int i = 0; i < pointCount; ++i) {
+            originalPoints.add(points[i].point);
+        }
 
         return this;
     }
@@ -217,6 +227,7 @@ public class AntColonyTSP {
             if (pointCount == 1) {
                 response.tour = new int[]{0};
             }
+            response.originalPoints = originalPoints;
             return response;
         }
 
@@ -364,6 +375,7 @@ public class AntColonyTSP {
         response.fitness = bestFitness;
         response.endEqStart = endEqStart;
         response.iterationNum = bestIteration;
+        response.originalPoints = originalPoints;
         return response;
     }
 
@@ -389,8 +401,8 @@ public class AntColonyTSP {
         for (int i = 0; i < pointCount; i++) {
             for (int j = i + 1; j < pointCount; j++) {
                 weight = getDistance(i, j);
-                if (weight == 0) {
-                    // 如果两个点的距离为 0 则 etaPowerBeta 用一个很大的值代替 TODO
+                if (weight < 1 / MAX_ETA_POWER_BETA) {
+                    // 防止数值上溢
                     etaPowerBeta[i][j] = etaPowerBeta[j][i] = MAX_ETA_POWER_BETA;
                 } else {
                     etaPowerBeta[i][j] = etaPowerBeta[j][i] = Math.pow(1 / weight, beta);
@@ -414,10 +426,10 @@ public class AntColonyTSP {
                 if (ant.visited[i] == 0 && points[i].dependency < 0) {
                     totalWeight++;
                     weights[i] = 1;
-                    selector.handleWeight(1, ant, null, points[i]);
+                    selector.processWeight(1, ant, null, points[i]);
                 } else {
                     weights[i] = 0;
-                    selector.handleWeight(0, ant, null, points[i]);
+                    selector.processWeight(0, ant, null, points[i]);
                 }
             }
             double randomNo = random.nextInt((int) totalWeight);
@@ -431,7 +443,7 @@ public class AntColonyTSP {
             }
         }
         ant.visit(0, visitIndex);
-        selector.calcFitness(ant, null, points[visitIndex]);
+        selector.calcFitness(ant, null, points[visitIndex], 0);
     }
 
     /**
@@ -456,7 +468,7 @@ public class AntColonyTSP {
                 // 没被访问过 且 没有父节点或者父节点被访问过
                 weight = tauPowerAlphaMultiplyEtaPowerBeta[current][i];
                 // 修改权重
-                weight = selector.handleWeight(weight, ant, currentPoint, points[i]);
+                weight = selector.processWeight(weight, ant, currentPoint, points[i]);
                 weights[i] = weight;
                 totalWeight += weight;
             } else {
@@ -478,9 +490,10 @@ public class AntColonyTSP {
         }
 
         ant.visit(nextIndex, select);
-        ant.length += getDistance(current, select);
+        double distance = getDistance(current, select);
+        ant.length += distance;
         // TODO
-        selector.calcFitness(ant, currentPoint, points[select]);
+        selector.calcFitness(ant, currentPoint, points[select], distance);
 
 //        System.out.println("visitNext select: " + select);
     }
@@ -495,8 +508,9 @@ public class AntColonyTSP {
             ant.tour[endIndex] = endPointIndex;
         }
         int endPointIdx = endPointIndex == END_EQ_START_POINT_INDEX ? ant.tour[0] : endPointIndex;
-        ant.length += getDistance(current, endPointIdx);
-        selector.calcFitness(ant, points[current], points[endPointIdx]);
+        double distance = getDistance(current, endPointIdx);
+        ant.length += distance;
+        selector.calcFitness(ant, points[current], points[endPointIdx], distance);
     }
 
     /**
@@ -560,6 +574,7 @@ public class AntColonyTSP {
         response.fitness = Double.MAX_VALUE;
         response.tour = new int[pointCount];
         response.endEqStart = endPointIndex == END_EQ_START_POINT_INDEX || endPointIndex >= 0 && endPointIndex == startPointIndex;
+        response.originalPoints = originalPoints;
 
         Ant ant = new Ant(pointCount);
         int tourIndex = 0;
@@ -591,8 +606,9 @@ public class AntColonyTSP {
         if (isEnd && endPointIndex >= 0 && endPointIndex != startPointIndex) {
             // 确定且不回起点的终点
             ant.tour[currentIndex] = endPointIndex;
-            ant.length += getDistance(prevPointIndex, endPointIndex);
-            selector.calcFitness(ant, points[prevPointIndex], points[endPointIndex]);
+            double distance = getDistance(prevPointIndex, endPointIndex);
+            ant.length += distance;
+            selector.calcFitness(ant, points[prevPointIndex], points[endPointIndex], distance);
         } else {
             byte[] visited = ant.visited;
             int dependency;
@@ -600,10 +616,12 @@ public class AntColonyTSP {
                 if (visited[pointIndex] == 0 && ((dependency = points[pointIndex].dependency) < 0 || visited[dependency] == Ant.VISITED)) {
                     // 尝试访问 pointIndex
                     ant.visit(currentIndex, pointIndex);
+                    double distance = 0;
                     if (prevPointIndex >= 0) {
-                        ant.length += getDistance(prevPointIndex, pointIndex);
+                        distance = getDistance(prevPointIndex, pointIndex);
+                        ant.length += distance;
                     }
-                    selector.calcFitness(ant, prevPointIndex >= 0 ? points[prevPointIndex] : null, points[pointIndex]);
+                    selector.calcFitness(ant, prevPointIndex >= 0 ? points[prevPointIndex] : null, points[pointIndex], distance);
 
                     if (!isEnd) {
                         // 当前长度小于最佳长度 则递归访问
@@ -625,8 +643,9 @@ public class AntColonyTSP {
         if (isEnd) {
             if (endPointIndex == END_EQ_START_POINT_INDEX || endPointIndex >= 0 && endPointIndex == startPointIndex) {
                 // 终点需要返回起点
-                ant.length += getDistance(ant.tour[currentIndex], ant.tour[0]);
-                selector.calcFitness(ant, points[ant.tour[currentIndex]], points[ant.tour[0]]);
+                double distance = getDistance(ant.tour[currentIndex], ant.tour[0]);
+                ant.length += distance;
+                selector.calcFitness(ant, points[ant.tour[currentIndex]], points[ant.tour[0]], distance);
             }
 
             if (selector.isBetter(bestRes.length, bestRes.fitness, ant)) {
@@ -639,6 +658,13 @@ public class AntColonyTSP {
     }
 
     private static final List<AntColonyTSP> sCache = new ArrayList<>();
+
+    public static AntColonyTSP obtain(Driver driver, List<Shipment> shipmentList) {
+        int pointCount = getDriverAndShipmentsPointCount(driver, shipmentList);
+        AntColonyTSP antColonyTSP = obtain(pointCount);
+        antColonyTSP.driverAndShipments(driver, shipmentList);
+        return antColonyTSP;
+    }
 
     /**
      * 获取 AntColonyTSP 对象
@@ -679,6 +705,7 @@ public class AntColonyTSP {
             }
         }
         selector = Selector.LENGTH_SELECTOR;
+        originalPoints = null;
         synchronized (sCache) {
             if (sCache.size() > 16) {
                 return;

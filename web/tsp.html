@@ -29,6 +29,7 @@
     <div id="container"></div>
     <pre class="info"></pre>
     <script src="https://webapi.amap.com/maps?v=1.4.10&key=c453cc05a143cb2c905212d766126340&plugin=AMap.Driving&plugin=Map3D"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/moment.min.js"></script>
     <script src="/web/common.js"></script>
     <script type="text/javascript">
       const info = document.querySelector('.info');
@@ -40,15 +41,8 @@
         mapStyle: 'amap://styles/dark',
       });
 
-      async function fetchData() {
-        const search = location.search.slice(1).split('&');
-        const file = search[0] ? search[0].split('=')[1] : 'tsp.json';
-        const res = await fetch(`/outputs/${file}`);
-        return res.json();
-      }
-
       async function drawResult() {
-        const res = await fetchData();
+        const res = await fetchData('tsp.json');
 
         drawTsp(res);
 
@@ -56,21 +50,38 @@
       }
 
       function drawTsp({ length, tour }) {
+
+        const infoWindow = new AMap.InfoWindow({offset: new AMap.Pixel(0, -10)});
+
         let point;
         const polylinePath = [];
         for (let i = 0; i < tour.length; ++i) {
           point = tour[i];
-          const color = getColor(point.parent < 0 ? i : point.parent);
+          const color = getColor(point.dependency < 0 ? i : point.dependency);
+
+          if (point.startTime > 0) {
+            point.startTime = moment(point.startTime).format('YYYY-MM-DD HH:mm');
+          }
+          if (point.endTime > 0) {
+            point.endTime = moment(point.endTime).format('YYYY-MM-DD HH:mm');
+          }
     
           const circleMarker = new AMap.CircleMarker({
             center: [point.lng, point.lat],
-            radius: point.parent < 0 ? 10 : 6,
+            radius: point.type !== 2 ? 10 : 5,
             fillColor: color,
-            strokeColor: i == 0 ? '#00c853' : point.parent < 0 ? '#ffd600' : '#888',
+            strokeColor: i == 0 ? '#00c853' : point.type === 2 ? '#ffd600' : '#888',
             strokeWeight: i == 0 ? 3 : 1,
             zIndex: 10,
             fillOpacity: 1,
           });
+          circleMarker.point = point;
+
+          circleMarker.on('click', (e) => {
+            infoWindow.setContent(JSON.stringify(e.target.point));
+            infoWindow.open(map, e.target.getCenter());
+          });
+
           map.add(circleMarker);
 
           polylinePath.push([point.lng, point.lat]);

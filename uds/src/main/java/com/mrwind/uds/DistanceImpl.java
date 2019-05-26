@@ -3,6 +3,7 @@ package com.mrwind.uds;
 import com.mrwind.uds.util.DistanceUtils;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class DistanceImpl implements Distance {
@@ -30,6 +31,10 @@ public class DistanceImpl implements Distance {
         }
 
         initDistance(points, rightAngleDistance, driverEndIndex);
+    }
+
+    public DistanceImpl(Driver driver, List<Shipment> shipmentList, boolean rightAngleDistance) {
+        this(Collections.singletonList(driver), shipmentList, rightAngleDistance);
     }
 
     private void initDistance(List<Point> points, boolean rightAngleDistance, int driverEndIndex) {
