@@ -84,7 +84,7 @@ public class UDS {
 
             return result;
         }, gtf)
-                .populationSize(100)
+                .populationSize(80)
                 .optimize(Optimize.MINIMUM)
                 // 一个司机分配到超过 30 单的概率比较低 所以一般不需要 phenotypeValidator
 //                .phenotypeValidator(new PhenotypeValidator(30))
@@ -96,10 +96,10 @@ public class UDS {
         EvolutionStatistics<Double, DoubleMomentStatistics> statistics =
                 EvolutionStatistics.ofNumber();
 
-        EvolutionResultStatistics<Double> evolutionResultStatistics = new EvolutionResultStatistics();
+        EvolutionResultStatistics<Double> evolutionResultStatistics = new EvolutionResultStatistics<>();
 
         Genotype<IntegerGene> resultGenotype = engine.stream()
-                .limit(100)
+                .limit(50)
                 .peek(statistics)
                 .peek(evolutionResultStatistics)
                 .collect(EvolutionResult.toBestGenotype());

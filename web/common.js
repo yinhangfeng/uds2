@@ -38,6 +38,6 @@ function getColor(index) {
 async function fetchData() {
   const search = location.search.slice(1).split('&');
   const file = search[0] ? search[0].split('=')[1] : 'uds.json';
-  const res = await fetch(`/outputs/${file}`);
+  const res = await fetch(`/outputs/${file}?${Math.random()}`);
   return res.json();
 }

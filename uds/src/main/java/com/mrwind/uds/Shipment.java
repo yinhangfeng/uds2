@@ -11,7 +11,7 @@ public class Shipment {
     public Point sender;
     // 收货点 receiver.dependency == sender receiver.endTime > sender.endTime
     public Point receiver;
-    // 如果运单已近非配给配送员 是否可以重新分配
+    // 如果运单已近分配给配送员 是否可以重新分配 TODO 目前没用
     public boolean canRedistribution;
 
     public String getId() {
