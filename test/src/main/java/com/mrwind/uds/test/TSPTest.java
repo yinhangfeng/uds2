@@ -264,21 +264,30 @@ public class TSPTest {
     // 穷举与蚁群的比较
     static void test4() throws Exception {
         // 穷举 12 个点就要 30s
-        int pointCount = 15;
-        int maxIterations = Math.min(Math.max(pointCount, 30), 100);
+        int pointCount = 14;
+        int startPointIndex = 0;
+        int endPointIndex = 1;
+        int maxIterations = Math.min(Math.max(pointCount, 20), 80);
 //        List<Point> points = getRandomPoints(pointCount);
-        List<Point> points = getPointsFromFile("../outputs/testTsp2.json");
+
+        List<Point> points = getPointsFromFile("../outputs/tspInput.json");
 //        points.set(1, points.get(0).clone());
 //        points.set(4, points.get(0).clone());
 //        points.set(3, points.get(2).clone());
-//        points.addAll(getRandomPoints(4, 1));
-        AntColonyTSP antColonyTSP = new AntColonyTSP(pointCount, false);
 
-        TSPResponse res1 = runExhaustive(antColonyTSP, points, 0, -1);
+        // 依赖
+//        points.addAll(getRandomPoints(1, 1));
+//        pointCount++;
+
+        AntColonyTSP antColonyTSP = AntColonyTSP.obtain(pointCount);
+
+        TSPResponse res1 = runExhaustive(antColonyTSP, points, startPointIndex, endPointIndex);
 
         output(res1, points);
 
-        TSPResponse res2 = runAco(antColonyTSP, points, 0, -1, maxIterations);
+        TSPResponse res2 = runAco(antColonyTSP, points, startPointIndex, endPointIndex, maxIterations);
+
+        antColonyTSP.recycle();
 
         output(res2, points, "tsp1.json");
 
@@ -362,10 +371,10 @@ public class TSPTest {
 //        test();
 //        test1();
 //        test2();
-        test3();
-//        test4();
+//        test3();
+        test4();
 //        test5();
 //        test6();
-//        testObtain();
+        testObtain();
     }
 }

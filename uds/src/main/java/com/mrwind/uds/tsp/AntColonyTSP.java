@@ -37,6 +37,7 @@ public class AntColonyTSP {
     private int endPointIndex = END_EQ_START_POINT_INDEX;
     private Distance distance;
     private int maxIterations;
+    private Selector selector = Selector.LENGTH_SELECTOR;
 
     private final int allocPointCount;
     private TSPPoint[] points;
@@ -137,6 +138,11 @@ public class AntColonyTSP {
      */
     public AntColonyTSP distance(Distance distance) {
         this.distance = distance;
+        return this;
+    }
+
+    public AntColonyTSP selector(Selector selector) {
+        this.selector = selector;
         return this;
     }
 
@@ -245,6 +251,8 @@ public class AntColonyTSP {
         int antCount = this.antCount;
         int[] bestTour = tempTour;
         double bestLength = Double.MAX_VALUE;
+        // TODO
+        double bestFitness = Double.MAX_VALUE;
         Ant ant;
         Ant bestAnt = null;
 
@@ -282,8 +290,9 @@ public class AntColonyTSP {
                     visitEnd(ant, tourIndex);
                 }
 
-                if (ant.length < bestLength) {
+                if (selector.isBetter(bestLength, bestFitness, ant)) {
                     bestLength = ant.length;
+                    bestFitness = ant.fitness;
                     bestAnt = ant;
                     bestIteration = iteration;
                 }
@@ -324,27 +333,35 @@ public class AntColonyTSP {
         System.arraycopy(bestTour, 0, tour, 0, pointCount);
         boolean endEqStart = endPointIndex >= 0 && endPointIndex == startPointIndex || endPointIndex == END_EQ_START_POINT_INDEX;
 
-        // 贪心优化局部路径
-        // 目前不支持优化终点回到起点 所以 pointCount - 1
-        double newBestLength = Greedy.greedyTour(tour, bestLength, endEqStart ? pointCount - 1 : pointCount, distance, points);
+        if (selector == Selector.LENGTH_SELECTOR && endPointIndex == RANDOM_POINT_INDEX) {
+            // 贪心优化局部路径
+            // 目前不支持优化终点回到起点 所以 pointCount - 1
+            // TODO 暂不支持基于 fitness 比较时的交换
+            // TODO 对起点返回终点的交换有 BUG
+            // TODO 暂不支持指定终点的交换
+            double newBestLength = Greedy.greedyTour(tour, bestLength, endEqStart ? pointCount - 1 : pointCount, distance, points);
 
-//        if (newBestLength < bestLength) {
-//            System.out.println("greedyTour 得到了更优的路径: " + newBestLength + " " + Arrays.toString(tour) + " old bestTour: " + bestLength + " " + Arrays.toString(bestTour));
-//        }
+//            if (newBestLength < bestLength) {
+//                System.out.println("greedyTour 得到了更优的路径: " + newBestLength + " " + Arrays.toString(tour) + " old bestTour: " + bestLength + " " + Arrays.toString(bestTour));
+//            }
+//
+//            double l1 = 0;
+//            double l2 = 0;
+//            for (int i = 0; i < pointCount - 1; ++i) {
+//                l1 += getDistance(bestTour[i], bestTour[i + 1]);
+//                l2 += getDistance(tour[i], tour[i + 1]);
+//            }
+//            System.out.println("xxxx l1: " + l1 + " l2: " + l2 + " bestLength: " + bestLength + " newBestLength: " + newBestLength);
+//            assert Math.abs(l1 - bestLength) < 0.0000001;
+//            assert Math.abs(l2 - newBestLength) < 0.0000001;
 
-//        double l1 = 0;
-//        double l2 = 0;
-//        for (int i = 0; i < pointCount - 1; ++i) {
-//            l1 += distance[bestTour[i]][bestTour[i + 1]];
-//            l2 += distance[tour[i]][tour[i + 1]];
-//        }
-//        System.out.println("xxxx l1: " + l1 + " l2: " + l2 + " bestLength: " + bestLength + " newBestLength: " + newBestLength);
-//        assert Math.abs(l1 - bestLength) < 0.0000001;
-//        assert Math.abs(l2 - newBestLength) < 0.0000001;
+            bestLength = newBestLength;
+        }
 
         TSPResponse response = new TSPResponse();
         response.tour = tour;
-        response.length = newBestLength;
+        response.length = bestLength;
+        response.fitness = bestFitness;
         response.endEqStart = endEqStart;
         response.iterationNum = bestIteration;
         return response;
@@ -386,8 +403,9 @@ public class AntColonyTSP {
      * 访问第一个点
      */
     private void visitStart(Ant ant) {
+        int visitIndex;
         if (startPointIndex >= 0) {
-            ant.visit(0, startPointIndex);
+            visitIndex = startPointIndex;
         } else {
             double totalWeight = 0;
             double[] weights = tempWeights;
@@ -396,21 +414,24 @@ public class AntColonyTSP {
                 if (ant.visited[i] == 0 && points[i].dependency < 0) {
                     totalWeight++;
                     weights[i] = 1;
+                    selector.handleWeight(1, ant, null, points[i]);
                 } else {
                     weights[i] = 0;
+                    selector.handleWeight(0, ant, null, points[i]);
                 }
             }
             double randomNo = random.nextInt((int) totalWeight);
-            int randomStartIndex = 0;
+            visitIndex = 0;
             double w = 0;
-            for (; randomStartIndex < pointCount; ++randomStartIndex) {
-                w += weights[randomStartIndex];
+            for (; visitIndex < pointCount; ++visitIndex) {
+                w += weights[visitIndex];
                 if (w >= randomNo) {
                     break;
                 }
             }
-            ant.visit(0, randomStartIndex);
         }
+        ant.visit(0, visitIndex);
+        selector.calcFitness(ant, null, points[visitIndex]);
     }
 
     /**
@@ -421,7 +442,9 @@ public class AntColonyTSP {
         double[][] tauPowerAlphaMultiplyEtaPowerBeta = this.tauPowerAlphaMultiplyEtaPowerBeta;
         TSPPoint[] points = this.points;
         byte[] visited = ant.visited;
+        Selector selector = this.selector;
         int current = ant.tour[nextIndex - 1];
+        TSPPoint currentPoint = points[nextIndex - 1];
         // 各个点的权重
         double[] weights = tempWeights;
         // 权重总和
@@ -432,6 +455,8 @@ public class AntColonyTSP {
             if (visited[i] == 0 && ((dependency = points[i].dependency) < 0 || visited[dependency] == Ant.VISITED)) {
                 // 没被访问过 且 没有父节点或者父节点被访问过
                 weight = tauPowerAlphaMultiplyEtaPowerBeta[current][i];
+                // 修改权重
+                weight = selector.handleWeight(weight, ant, currentPoint, points[i]);
                 weights[i] = weight;
                 totalWeight += weight;
             } else {
@@ -454,6 +479,8 @@ public class AntColonyTSP {
 
         ant.visit(nextIndex, select);
         ant.length += getDistance(current, select);
+        // TODO
+        selector.calcFitness(ant, currentPoint, points[select]);
 
 //        System.out.println("visitNext select: " + select);
     }
@@ -467,7 +494,9 @@ public class AntColonyTSP {
             // 起点与终点不同才需要计入 tour
             ant.tour[endIndex] = endPointIndex;
         }
-        ant.length += getDistance(current, endPointIndex == END_EQ_START_POINT_INDEX ? ant.tour[0] : endPointIndex);
+        int endPointIdx = endPointIndex == END_EQ_START_POINT_INDEX ? ant.tour[0] : endPointIndex;
+        ant.length += getDistance(current, endPointIdx);
+        selector.calcFitness(ant, points[current], points[endPointIdx]);
     }
 
     /**
@@ -502,8 +531,6 @@ public class AntColonyTSP {
                 pheromone[nextIndex][curIndex] += pheromoneToBeAdded;
             }
         }
-
-
     }
 
     /**
@@ -529,7 +556,8 @@ public class AntColonyTSP {
         int endPointIndex = this.endPointIndex;
 
         TSPResponse response = new TSPResponse();
-        response.length = Integer.MAX_VALUE;
+        response.length = Double.MAX_VALUE;
+        response.fitness = Double.MAX_VALUE;
         response.tour = new int[pointCount];
         response.endEqStart = endPointIndex == END_EQ_START_POINT_INDEX || endPointIndex >= 0 && endPointIndex == startPointIndex;
 
@@ -557,27 +585,35 @@ public class AntColonyTSP {
         int prevIndex = currentIndex - 1;
         int prevPointIndex = prevIndex < 0 ? -1 : ant.tour[prevIndex];
         boolean isEnd = currentIndex == pointCount - 1;
-        double length = ant.length;
-        double prevLength = length;
+        double prevLength = ant.length;
+        double prevFitness = ant.fitness;
 
         if (isEnd && endPointIndex >= 0 && endPointIndex != startPointIndex) {
             // 确定且不回起点的终点
             ant.tour[currentIndex] = endPointIndex;
-            length += getDistance(prevPointIndex, endPointIndex);
+            ant.length += getDistance(prevPointIndex, endPointIndex);
+            selector.calcFitness(ant, points[prevPointIndex], points[endPointIndex]);
         } else {
             byte[] visited = ant.visited;
             int dependency;
             for (int pointIndex = 0; pointIndex < pointCount; ++pointIndex) {
                 if (visited[pointIndex] == 0 && ((dependency = points[pointIndex].dependency) < 0 || visited[dependency] == Ant.VISITED)) {
+                    // 尝试访问 pointIndex
                     ant.visit(currentIndex, pointIndex);
                     if (prevPointIndex >= 0) {
-                        length += getDistance(prevPointIndex, pointIndex);
+                        ant.length += getDistance(prevPointIndex, pointIndex);
                     }
-                    // 如果当前路径长度已经大于当前最佳路径 就不用继续了
-                    if (!isEnd && length < bestRes.length) {
-                        ant.length = length;
-                        recursiveTSP(currentIndex + 1, ant, bestRes);
-                        length = ant.length = prevLength;
+                    selector.calcFitness(ant, prevPointIndex >= 0 ? points[prevPointIndex] : null, points[pointIndex]);
+
+                    if (!isEnd) {
+                        // 当前长度小于最佳长度 则递归访问
+                        if (selector.isBetter(bestRes.length, bestRes.fitness, ant)) {
+                            recursiveTSP(currentIndex + 1, ant, bestRes);
+                        }
+
+                        // 非最后一步才需要恢复 length 和 fitness
+                        ant.length = prevLength;
+                        ant.fitness = prevFitness;
                     }
 
                     // 退一步
@@ -589,13 +625,15 @@ public class AntColonyTSP {
         if (isEnd) {
             if (endPointIndex == END_EQ_START_POINT_INDEX || endPointIndex >= 0 && endPointIndex == startPointIndex) {
                 // 终点需要返回起点
-                length += getDistance(ant.tour[currentIndex], ant.tour[0]);
+                ant.length += getDistance(ant.tour[currentIndex], ant.tour[0]);
+                selector.calcFitness(ant, points[ant.tour[currentIndex]], points[ant.tour[0]]);
             }
 
-            if (length < bestRes.length) {
+            if (selector.isBetter(bestRes.length, bestRes.fitness, ant)) {
                 // 这里不能使用交换 tour 的方式 因为其它路径需要 tour 中的信息
                 ant.copyTour(bestRes.tour);
-                bestRes.length = length;
+                bestRes.length = ant.length;
+                bestRes.fitness = ant.fitness;
             }
         }
     }
@@ -640,6 +678,7 @@ public class AntColonyTSP {
                 point.point = null;
             }
         }
+        selector = Selector.LENGTH_SELECTOR;
         synchronized (sCache) {
             if (sCache.size() > 16) {
                 return;

@@ -11,6 +11,8 @@ class Ant {
     int tour[];
     // 路径长度
     double length;
+    // 路径合适度
+    double fitness;
     // 访问数组 0 代表未访问 1 代表已访问 2 代表终点
     byte visited[];
 

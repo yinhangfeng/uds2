@@ -9,6 +9,10 @@ public class TSPResponse {
      */
     public double length;
     /**
+     * 合适度
+     */
+    public double fitness;
+    /**
      * 路线 终点回到起点时 不会包括最后一个起点
      */
     public int[] tour;
@@ -16,13 +20,16 @@ public class TSPResponse {
      * 终点是否回到起点
      */
     public boolean endEqStart;
-    // 最短距离的迭代次数
+    /**
+     * 产生最佳结果的迭代次数
+     */
     public int iterationNum;
 
     @Override
     public String toString() {
         return "TSPResponse{" +
                 "length=" + length +
+                ", fitness=" + fitness +
                 ", tour=" + Arrays.toString(tour) +
                 ", endEqStart=" + endEqStart +
                 ", iterationNum=" + iterationNum +
