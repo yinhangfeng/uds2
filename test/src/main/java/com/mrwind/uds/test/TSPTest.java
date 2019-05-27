@@ -392,7 +392,7 @@ public class TSPTest {
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm");
 
         driver.workStartTime = simpleDateFormat.parse("2019-05-26 08:00").getTime();
-        List<Shipment> shipmentList = Main.getRandomShipments(4);
+        List<Shipment> shipmentList = Main.getRandomShipments(8);
 
         shipmentList.get(0).getSender().startTime = simpleDateFormat.parse("2019-05-26 09:00").getTime();
         shipmentList.get(0).getSender().endTime = simpleDateFormat.parse("2019-05-26 10:00").getTime();
@@ -466,7 +466,7 @@ public class TSPTest {
 //        test6();
 //        testObtain();
 
-//        test7();
-        test8();
+        test7();
+//        test8();
     }
 }

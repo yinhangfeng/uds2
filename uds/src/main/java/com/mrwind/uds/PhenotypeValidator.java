@@ -4,8 +4,12 @@ import io.jenetics.IntegerGene;
 import io.jenetics.Phenotype;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.function.Predicate;
 
+/**
+ * TODO 使用最小生成树 快速估算是否有效
+ */
 public class PhenotypeValidator implements Predicate<Phenotype<IntegerGene, Double>> {
 
     private static ThreadLocal<int[]> counterThreadLocal = new ThreadLocal<>();
@@ -43,6 +47,22 @@ public class PhenotypeValidator implements Predicate<Phenotype<IntegerGene, Doub
             System.out.println("PhenotypeValidator invalid maxValue: " + maxValue + " " + chromosome);
             return false;
         }
+
+        integerGeneDoublePhenotype.getFitness();
+
+        List<Driver> driverList = chromosome.response.driverList;
+        List<Response.DriverAllocation> driverAllocations = chromosome.response.driverAllocations;
+        for (int i = 0; i < driverList.size(); ++i) {
+            Driver driver = driverList.get(i);
+            if (driver.maxMileage > 0) {
+                if (driverAllocations.get(i).response.length > driver.maxMileage * 2) {
+                    System.out.println("xxxx" + driverAllocations.get(i).response.length + " " + driver.maxMileage);
+                    return false;
+                }
+            }
+        }
+
+
         return true;
     }
 }

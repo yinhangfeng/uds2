@@ -12,12 +12,23 @@ import io.jenetics.engine.EvolutionStatistics;
 import io.jenetics.stat.DoubleMomentStatistics;
 import io.jenetics.util.Factory;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 
 public class UDS {
 
+    private long currentTime;
+
     public UDS() {
+
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm");
+        try {
+            currentTime = simpleDateFormat.parse("2019-05-27 08:00").getTime();
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
 
     }
 
@@ -72,24 +83,45 @@ public class UDS {
                     }
 
                     driverAllocation.response = tspResponse;
-                    result += tspResponse.length;
+
+                    double driverFitness = tspResponse.length;
+
+//                    if (driver.maxLoad > 0) {
+//                        // 超最大单量惩罚
+//                        if (driverShipments.size() > driver.maxLoad) {
+//                            driverFitness *= driverShipments.size() / ((double) driver.maxLoad);
+//
+//                            System.out.println("maxLoad " + driverShipments.size() / ((double) driver.maxLoad));
+//                        }
+//                    }
+//
+//                    if (driver.maxMileage > 0) {
+//                        if (tspResponse.length > driver.maxMileage) {
+//                            driverFitness *= Math.pow(tspResponse.length / driver.maxMileage, 2);
+//
+//                            System.out.println("maxMileage " + Math.pow(tspResponse.length / driver.maxMileage, 2));
+//                        }
+//                    }
+
+                    result += driverFitness;
                 }
             }
 
             Response response = new Response();
             response.driverAllocations = driverAllocations;
+            response.driverList = driverList;
             chromosome.response = response;
 
 //            System.out.println("fitness " + result + " " + Thread.currentThread().getName());
 
             return result;
         }, gtf)
-                .populationSize(80)
+                .populationSize(100)
                 .optimize(Optimize.MINIMUM)
                 // 一个司机分配到超过 30 单的概率比较低 所以一般不需要 phenotypeValidator
-//                .phenotypeValidator(new PhenotypeValidator(30))
+                .phenotypeValidator(new PhenotypeValidator(20))
 //                .maximalPhenotypeAge(20)
-//                .offspringFraction(0.9)
+//                .offspringFraction(0.8)
 //                .executor(Runnable::run)
                 .build();
 
@@ -99,7 +131,7 @@ public class UDS {
         EvolutionResultStatistics<Double> evolutionResultStatistics = new EvolutionResultStatistics<>();
 
         Genotype<IntegerGene> resultGenotype = engine.stream()
-                .limit(50)
+                .limit(40)
                 .peek(statistics)
                 .peek(evolutionResultStatistics)
                 .collect(EvolutionResult.toBestGenotype());

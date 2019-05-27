@@ -62,6 +62,8 @@ public class Main {
         driver.setId(id);
         driver.setPos(getRandomPoint("ds_" + id));
         driver.setHome(getRandomPoint("dh_" + id));
+        driver.setMaxLoad(12);
+        driver.setMaxMileage(120_000);
         return driver;
     }
 
@@ -211,13 +213,13 @@ public class Main {
 
     public static void main(String[] args) throws Exception {
 
-//        outputRandomInputData(5, 40);
+//        outputRandomInputData(4, 40);
 
 //        test1();
 //        test2();
-//        test3();
+        test3();
 
-        TSPTest.main(args);
+//        TSPTest.main(args);
 //        JeneticsTest.main(args);
     }
 }

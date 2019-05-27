@@ -187,7 +187,7 @@ public class AntColonyTSP {
             points[index] = new TSPPoint(point, index, dependency);
         } else {
             tspPoint.point = point;
-            tspPoint.dependency = dependency;
+//            tspPoint.dependency = dependency;
             tspPoint.index = index;
         }
     }
