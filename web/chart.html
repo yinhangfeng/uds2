@@ -25,6 +25,9 @@
       function draw({ evolutionResults }) {
         const myChart = echarts.init(document.getElementById('main'));
 
+        let minValue = Number.MAX_VALUE;
+        let maxValue = 0;
+
         // 指定图表的配置项和数据
         const option = {
           title: {
@@ -40,7 +43,7 @@
           yAxis: [
             {
               type: 'value',
-              scale: true,
+              // scale: true,
               name: '总里程',
             },
           ],
@@ -76,13 +79,23 @@
               data: evolutionResults.reduce((res, v, i) => {
                 res = res.concat(
                   v.fitnessList
-                    .map(it => [i, it])
+                    .map(it => {
+                      if (it > maxValue) {
+                        maxValue = it;
+                      } else if (it < minValue) {
+                        minValue = it;
+                      }
+                      return [i, it];
+                    })
                 );
                 return res;
               }, []),
             },
           ],
         };
+
+        option.yAxis[0].min = Math.round(minValue - (maxValue - minValue) * 0.15);
+        option.yAxis[0].max = Math.round(maxValue + (maxValue - minValue) * 0.15);
 
         myChart.setOption(option);
       }

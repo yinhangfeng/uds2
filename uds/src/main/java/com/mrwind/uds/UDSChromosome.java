@@ -8,6 +8,8 @@ import io.jenetics.util.IntRange;
 public class UDSChromosome extends IntegerChromosome {
 
     public Response response;
+    private static int _xxx = 0;
+    public int xxx = _xxx++;
 
     protected UDSChromosome(ISeq<IntegerGene> genes, IntRange lengthRange) {
         super(genes, lengthRange);
