@@ -210,12 +210,20 @@ public class Main {
     }
 
     static void testKGrayCode() {
-        int n = 1;
-        int m = Short.MAX_VALUE + 1;
-        KGrayCode KGrayCode = new KGrayCode(n, m);
+        int n = 3;
+        int m = 8;
+        KGrayCode kGrayCode = new KGrayCode(n, m);
 
-        for (com.mrwind.uds.util.KGrayCode.Element y : KGrayCode) {
-            System.out.println(y + " " + KGrayCode.hasNext() + " " + (Integer.toBinaryString(y.nm.length > 1 ? y.nm[0] + y.nm[1] * m : y.nm[0])));
+        for (com.mrwind.uds.util.KGrayCode.Element e : kGrayCode) {
+            System.out.println(e + " " + kGrayCode.hasNext() + " " + (Integer.toBinaryString(e.nm.length > 1 ? e.nm[0] + e.nm[1] * m : e.nm[0])));
+        }
+
+        System.out.println("reset");
+
+        n = 2;
+        kGrayCode.reset(n);
+        for (com.mrwind.uds.util.KGrayCode.Element e : kGrayCode) {
+            System.out.println(e + " " + kGrayCode.hasNext() + " " + (Integer.toBinaryString(e.nm.length > 1 ? e.nm[0] + e.nm[1] * m : e.nm[0])));
         }
     }
 
@@ -227,7 +235,7 @@ public class Main {
 //        test2();
 //        test3();
 
-//        testKGrayCode();
+        testKGrayCode();
 //        TSPTest.main(args);
 //        JeneticsTest.main(args);
     }

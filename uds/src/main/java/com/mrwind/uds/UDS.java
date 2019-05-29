@@ -4,6 +4,7 @@ import com.mrwind.uds.stat.EvolutionResultStatistics;
 import com.mrwind.uds.tsp.AntColonyTSP;
 import com.mrwind.uds.tsp.DriverTimeSelector;
 import com.mrwind.uds.tsp.TSPResponse;
+import com.mrwind.uds.util.KGrayCode;
 import io.jenetics.*;
 import io.jenetics.engine.Engine;
 import io.jenetics.engine.EvolutionResult;
@@ -14,10 +15,13 @@ import io.jenetics.util.Factory;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.HashMap;
 import java.util.List;
 
 public class UDS {
 
+    private Distance distance;
     private long currentTime;
 
     public UDS() {
@@ -194,7 +198,134 @@ public class UDS {
     }
 
 
-    public Response run1(List<Driver> driverList, List<Shipment> shipmentList, int k) {
+    public Response run1(List<Driver> driverList, List<Shipment> shipmentList, int batchSize) {
+        if (batchSize > 32) {
+            throw new IllegalArgumentException("batchSize must <= 64");
+        }
+
+        int shipmentCount = shipmentList.size();
+        int batchCount = (int) Math.ceil(shipmentCount / (double) batchSize);
+        int driverCount = driverList.size();
+        List<DriverBatchAllocation> driverBatchAllocations = new ArrayList<>(driverCount);
+        for (Driver driver : driverList) {
+            driverBatchAllocations.add(new DriverBatchAllocation(driver, batchSize));
+        }
+        int currentBatchSize = Math.min(batchSize, shipmentCount);
+        KGrayCode kGrayCode = new KGrayCode(currentBatchSize, driverCount);
+
+        Driver oldDriver = null;
+        Driver newDriver = null;
+        DriverBatchAllocation oldDriverBatchAllocation = null;
+        DriverBatchAllocation newDriverBatchAllocation = null;
+        double bestFitness = Double.MAX_VALUE;
+        double currentFitness = 0;
+        int batchStartIndex = 0;
+        for (; ;) {
+            // 初始本批次所有单都分给第一个司机
+            driverBatchAllocations.get(0).allocation.set(0, currentBatchSize, true);
+
+            for (KGrayCode.Element change : kGrayCode) {
+                if (change.oldValue >= 0) {
+                    oldDriver = driverList.get(change.oldValue);
+                    oldDriverBatchAllocation = driverBatchAllocations.get(change.oldValue);
+                    assert oldDriverBatchAllocation.allocation.get(change.index);
+                    oldDriverBatchAllocation.allocation.set(change.index, false);
+                    currentFitness += xxx(oldDriver, oldDriverBatchAllocation, shipmentList, batchStartIndex, batchSize);
+                }
+
+                newDriver = driverList.get(change.value);
+                newDriverBatchAllocation = driverBatchAllocations.get(change.value);
+                assert !newDriverBatchAllocation.allocation.get(change.index);
+                newDriverBatchAllocation.allocation.set(change.index, true);
+                currentFitness += xxx(newDriver, newDriverBatchAllocation, shipmentList, batchStartIndex, batchSize);
+
+                if (currentFitness < bestFitness) {
+                    bestFitness = currentFitness;
+
+                    // TODO 保存最佳的分配
+                }
+            }
+
+            // TODO 将最佳分配 存入 DriverBatchAllocation
+
+            batchStartIndex += batchSize;
+
+            if (batchStartIndex >= shipmentCount) {
+                break;
+            }
+            if (batchStartIndex >= shipmentCount - batchSize) {
+                // 下一个 batch 为最后一个 可能长度不足 batchSize
+                currentBatchSize = shipmentCount - batchStartIndex - 1;
+            }
+
+            kGrayCode.reset(currentBatchSize);
+        }
+
+        
         return null;
+    }
+
+    double xxx(Driver driver, DriverBatchAllocation driverBatchAllocation, List<Shipment> allShipments, int batchStartIndex, int batchSize) {
+
+        // driverBatchAllocation.allocation 的长度不可能超过 32 所以去第一个 int 就可以
+        int allocationCacheKey = (int) driverBatchAllocation.allocation.toLongArray()[0];
+
+        Double cache = driverBatchAllocation.batchCache.get(allocationCacheKey);
+
+        double fitness;
+        if (cache != null) {
+            fitness = cache;
+        } else {
+            // 清掉当前 batch 分配的
+            while (driverBatchAllocation.allocationShipments.size() > driverBatchAllocation.currentAllocationStartIndex) {
+                driverBatchAllocation.allocationShipments.remove(driverBatchAllocation.allocationShipments.size() - 1);
+            }
+
+            // 添加新的分配
+            for (int i = batchStartIndex; i < batchStartIndex + batchSize; ++i) {
+                if (driverBatchAllocation.allocation.get(i)) {
+                    driverBatchAllocation.allocationShipments.add(allShipments.get(i));
+                }
+            }
+
+            AntColonyTSP antColonyTSP = AntColonyTSP.obtain(driver, driverBatchAllocation.allocationShipments)
+                    .distance(distance);
+
+            TSPResponse tspResponse = antColonyTSP.run();
+            fitness = tspResponse.fitness;
+
+            antColonyTSP.recycle();
+        }
+
+
+        double oldFitness = driverBatchAllocation.fitness;
+        driverBatchAllocation.fitness = fitness;
+        return fitness - oldFitness;
+    }
+
+    static class DriverBatchAllocation {
+        public DriverBatchAllocation(Driver driver, int batchSize) {
+            allocation = new BitSet(batchSize);
+            batchCache = new HashMap<>();
+            if (driver.allocatedShipments != null) {
+                allocationShipments = new ArrayList<>(driver.allocatedShipments);
+                currentAllocationStartIndex = allocationShipments.size();
+            } else {
+                allocationShipments = new ArrayList<>();
+            }
+        }
+
+        // 当前批次的运单分配情况 每一 bit 代表该单是否分配给了当前司机
+        public BitSet allocation;
+        public HashMap<Integer, Double> batchCache;
+        // 当前已分配的运单
+        // 最开始一段为 driver.allocatedShipments 之后 currentAllocationStartIndex 之前为 已经分配的
+        // 再之后为当前 batch 分配的
+        public List<Shipment> allocationShipments;
+        // 当前 batch 分配在 allocationShipments 中的开始 index
+        public int currentAllocationStartIndex;
+        // 当前分配的 fitness
+        public double fitness;
+
     }
 }
