@@ -1,20 +1,18 @@
 package com.mrwind.uds.test;
 
 import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.TypeReference;
 import com.alibaba.fastjson.serializer.SerializerFeature;
 import com.mrwind.uds.*;
 import com.mrwind.uds.util.CoordinateUtils;
+import com.mrwind.uds.util.KGrayCode;
 import org.apache.commons.io.FileUtils;
 
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 public class Main {
@@ -211,14 +209,25 @@ public class Main {
         output(response);
     }
 
+    static void testKGrayCode() {
+        int n = 1;
+        int m = Short.MAX_VALUE + 1;
+        KGrayCode KGrayCode = new KGrayCode(n, m);
+
+        for (com.mrwind.uds.util.KGrayCode.Element y : KGrayCode) {
+            System.out.println(y + " " + KGrayCode.hasNext() + " " + (Integer.toBinaryString(y.nm.length > 1 ? y.nm[0] + y.nm[1] * m : y.nm[0])));
+        }
+    }
+
     public static void main(String[] args) throws Exception {
 
 //        outputRandomInputData(4, 40);
 
 //        test1();
 //        test2();
-        test3();
+//        test3();
 
+//        testKGrayCode();
 //        TSPTest.main(args);
 //        JeneticsTest.main(args);
     }
