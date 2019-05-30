@@ -19,6 +19,13 @@ public class Response {
          */
         public List<Shipment> shipmentList;
         public TSPResponse response;
+
+        @Override
+        public String toString() {
+            return "DriverAllocation{" +
+                    "shipmentList=" + shipmentList +
+                    '}';
+        }
     }
 
     public Response() {
@@ -32,4 +39,10 @@ public class Response {
     // 遗传算法统计
     public List<SimpleEvolutionResult> evolutionResults;
 
+    @Override
+    public String toString() {
+        return "Response{" +
+                "driverAllocations=" + driverAllocations +
+                '}';
+    }
 }

@@ -115,6 +115,7 @@ public class KGrayCode implements Iterable<KGrayCode.Element>, Iterator<KGrayCod
                     "nm=" + Arrays.toString(nm) +
                     ", index=" + index +
                     ", value=" + value +
+                    ", oldValue=" + oldValue +
                     '}';
         }
     }

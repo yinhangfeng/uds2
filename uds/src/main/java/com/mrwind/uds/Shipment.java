@@ -56,4 +56,11 @@ public class Shipment {
         this.receiver = receiver;
         receiver.type = Point.TYPE_RECEIVER;
     }
+
+    @Override
+    public String toString() {
+        return "Shipment{" +
+                "id='" + id + '\'' +
+                '}';
+    }
 }

@@ -675,8 +675,7 @@ public class AntColonyTSP {
                 AntColonyTSP inst = sCache.get(i);
                 if (inst.allocPointCount >= pointCount) {
                     sCache.remove(i);
-                    return inst.startPointIndex(RANDOM_POINT_INDEX)
-                            .endPointIndex(END_EQ_START_POINT_INDEX);
+                    return inst;
                 }
             }
         }
@@ -697,6 +696,9 @@ public class AntColonyTSP {
         if (allocPointCount > 128) {
             return;
         }
+        startPointIndex = RANDOM_POINT_INDEX;
+        endPointIndex = END_EQ_START_POINT_INDEX;
+        maxIterations = -1;
         distance = null;
         pointCount = -1;
         for (TSPPoint point : points) {

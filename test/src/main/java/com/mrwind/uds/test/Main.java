@@ -13,6 +13,7 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class Main {
@@ -160,6 +161,24 @@ public class Main {
         return getInputDataFromFile("input.json");
     }
 
+    static void testKGrayCode() {
+        int n = 3;
+        int m = 8;
+        KGrayCode kGrayCode = new KGrayCode(n, m);
+
+        for (com.mrwind.uds.util.KGrayCode.Element e : kGrayCode) {
+            System.out.println(e + " " + kGrayCode.hasNext() + " " + (Integer.toBinaryString(e.nm.length > 1 ? e.nm[0] + e.nm[1] * m : e.nm[0])));
+        }
+
+        System.out.println("reset");
+
+        n = 2;
+        kGrayCode.reset(n);
+        for (com.mrwind.uds.util.KGrayCode.Element e : kGrayCode) {
+            System.out.println(e + " " + kGrayCode.hasNext() + " " + (Integer.toBinaryString(e.nm.length > 1 ? e.nm[0] + e.nm[1] * m : e.nm[0])));
+        }
+    }
+
     static void test1() {
         List<Driver> drivers = getRandomDrivers(5);
 
@@ -204,8 +223,10 @@ public class Main {
         List<Driver> drivers = responseInput.driverList;
         List<Shipment> shipmentList = responseInput.shipmentList;
 
+        long start = System.currentTimeMillis();
         UDS uds = new UDS(drivers, shipmentList);
         Response response = uds.run();
+        System.out.println("run time: " + (System.currentTimeMillis() - start));
         output(response);
     }
 
@@ -216,35 +237,65 @@ public class Main {
         List<Shipment> shipmentList = responseInput.shipmentList;
 
         UDS uds = new UDS(drivers, shipmentList);
-        Response response = uds.run1( 20);
+        Response response = null;
+        long start = System.currentTimeMillis();
+        response = uds.run1(1);
+
+        double fitness = 0;
+        for (Response.DriverAllocation driverAllocation : response.driverAllocations) {
+            fitness += driverAllocation.response.length;
+        }
+
+        System.out.println("test4 fitness: " + fitness);
+        System.out.println("run time: " + (System.currentTimeMillis() - start));
+
+
+        System.out.println(response);
+        System.out.println("minTspTime: " + UDS.minTspTime + " maxTspTime: " + UDS.maxTspTime + " totalTspTime: " + UDS.totalTspTime + " avgTspTime: " + (UDS.totalTspTime / (double) UDS.tspRunTimes));
+
         output(response, "uds1.json");
     }
 
-    static void testKGrayCode() {
-        int n = 3;
-        int m = 8;
-        KGrayCode kGrayCode = new KGrayCode(n, m);
+    // batchSize
+    static void test5() throws Exception {
+        Response responseInput = getInputDataFromFile();
 
-        for (com.mrwind.uds.util.KGrayCode.Element e : kGrayCode) {
-            System.out.println(e + " " + kGrayCode.hasNext() + " " + (Integer.toBinaryString(e.nm.length > 1 ? e.nm[0] + e.nm[1] * m : e.nm[0])));
+        List<Driver> drivers = responseInput.driverList;
+        List<Shipment> shipmentList = responseInput.shipmentList;
+
+        UDS uds = new UDS(drivers, shipmentList);
+        Response response = null;
+        for (int j = 0; j < 2; ++j) {
+            for (int i = 1; i <= 2; ++i) {
+                long start = System.currentTimeMillis();
+                response = uds.run1(i);
+
+                double fitness = 0;
+                for (Response.DriverAllocation driverAllocation : response.driverAllocations) {
+                    fitness += driverAllocation.response.length;
+                }
+
+                System.out.println("test5 " + i + " fitness: " + fitness);
+                System.out.println("run time: " + (System.currentTimeMillis() - start));
+            }
+
+            Collections.shuffle(shipmentList);
         }
 
-        System.out.println("reset");
 
-        n = 2;
-        kGrayCode.reset(n);
-        for (com.mrwind.uds.util.KGrayCode.Element e : kGrayCode) {
-            System.out.println(e + " " + kGrayCode.hasNext() + " " + (Integer.toBinaryString(e.nm.length > 1 ? e.nm[0] + e.nm[1] * m : e.nm[0])));
-        }
+        System.out.println(response);
+        System.out.println("minTspTime: " + UDS.minTspTime + " maxTspTime: " + UDS.maxTspTime + " totalTspTime: " + UDS.totalTspTime + " avgTspTime: " + (UDS.totalTspTime / (double) UDS.tspRunTimes));
+
+        output(response, "uds1.json");
     }
 
     public static void main(String[] args) throws Exception {
 
-        outputRandomInputData(2, 20);
+        outputRandomInputData(10, 80);
 
 //        test1();
 //        test2();
-//        test3();
+        test3();
         test4();
 
 //        testKGrayCode();

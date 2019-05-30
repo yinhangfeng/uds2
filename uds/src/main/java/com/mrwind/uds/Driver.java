@@ -108,4 +108,11 @@ public class Driver implements Cloneable {
             throw new RuntimeException(e);
         }
     }
+
+    @Override
+    public String toString() {
+        return "Driver{" +
+                "id='" + id + '\'' +
+                '}';
+    }
 }

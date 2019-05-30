@@ -24,6 +24,11 @@ public class UDS {
     private Distance distance;
     private long currentTime;
 
+    public static long minTspTime = Long.MAX_VALUE;
+    public static long maxTspTime = Long.MIN_VALUE;
+    public static long totalTspTime = 0;
+    public static long tspRunTimes = 0;
+
     public UDS(List<Driver> driverList, List<Shipment> shipmentList) {
         this.driverList = driverList;
         this.shipmentList = shipmentList;
@@ -186,7 +191,7 @@ public class UDS {
         EvolutionResultStatistics<Double> evolutionResultStatistics = new EvolutionResultStatistics<>();
 
         Genotype<IntegerGene> resultGenotype = engine.stream()
-                .limit(400)
+                .limit(50)
                 .peek(statistics)
                 .peek(evolutionResultStatistics)
                 .collect(EvolutionResult.toBestGenotype());
@@ -215,12 +220,14 @@ public class UDS {
         int shipmentCount = shipmentList.size();
 //        int batchCount = (int) Math.ceil(shipmentCount / (double) batchSize);
         int driverCount = driverList.size();
-        List<DriverBatchAllocation> driverBatchAllocations = new ArrayList<>(driverCount);
-        for (Driver driver : driverList) {
-            driverBatchAllocations.add(new DriverBatchAllocation(driver, batchSize));
-        }
         // 当前 batch 大小 最后一个 batch 可能小于 batchSize
         int currentBatchSize = Math.min(batchSize, shipmentCount);
+        List<DriverBatchAllocation> driverBatchAllocations = new ArrayList<>(driverCount);
+        // 当 batchSize <= 2 获取 driverCount <= 2 时 对每个司机来说 每一次迭代分配情况都不同 所以就不需要缓存了
+        boolean driverBatchAllocationCache = currentBatchSize > 2 && driverCount > 2;
+        for (Driver driver : driverList) {
+            driverBatchAllocations.add(new DriverBatchAllocation(driver, currentBatchSize, driverBatchAllocationCache));
+        }
         // 通过类似格雷码的方式迭代一个 batch 的所有分配方案
         KGrayCode kGrayCode = new KGrayCode(currentBatchSize, driverCount);
 
@@ -238,7 +245,9 @@ public class UDS {
         for (; ; ) {
             bestFitness = Double.MAX_VALUE;
             // 初始本批次所有单都分给第一个司机
-            driverBatchAllocations.get(0).allocation.set(0, currentBatchSize, true);
+            if (currentBatchSize > 1) {
+                driverBatchAllocations.get(0).allocation.set(1, currentBatchSize, true);
+            }
 
             for (KGrayCode.Element change : kGrayCode) {
                 if (change.oldValue >= 0) {
@@ -257,14 +266,18 @@ public class UDS {
                 newDriverBatchAllocation.allocation.set(change.index, true);
                 currentFitness += newDriverBatchAllocation.calcFitnessDiff(shipmentList, batchStartIndex, currentBatchSize, antColonyTSP);
 
+//                System.out.println("batchStartIndex: " + batchStartIndex + " currentBatchSize: " + currentBatchSize);
+//                System.out.println("allocation: " + change);
+//                System.out.println(driverBatchAllocations);
+//                System.out.println();
+
                 if (currentFitness < bestFitness) {
                     bestFitness = currentFitness;
 
                     // 保存最佳的分配
-                    if (oldDriverBatchAllocation != null) {
-                        oldDriverBatchAllocation.saveBestAllocation();
+                    for (DriverBatchAllocation driverBatchAllocation : driverBatchAllocations) {
+                        driverBatchAllocation.saveBestAllocation();
                     }
-                    newDriverBatchAllocation.saveBestAllocation();
                 }
             }
 
@@ -283,7 +296,7 @@ public class UDS {
             }
             if (batchStartIndex >= shipmentCount - batchSize) {
                 // 下一个 batch 为最后一个 可能长度不足 batchSize
-                currentBatchSize = shipmentCount - batchStartIndex - 1;
+                currentBatchSize = shipmentCount - batchStartIndex;
             }
 
             // 重置分配计数
@@ -311,10 +324,12 @@ public class UDS {
     }
 
     static class DriverBatchAllocation {
-        public DriverBatchAllocation(Driver driver, int batchSize) {
+        public DriverBatchAllocation(Driver driver, int batchSize, boolean cache) {
             this.driver = driver;
             allocation = new BitSet(batchSize);
-            batchCache = new HashMap<>();
+            if (cache) {
+                batchCache = new HashMap<>();
+            }
             if (driver.allocatedShipments != null) {
                 allocationShipments = new ArrayList<>(driver.allocatedShipments);
                 batchAllocationStartIndex = allocationShipments.size();
@@ -337,11 +352,17 @@ public class UDS {
         public int batchAllocationStartIndex;
         // 当前分配的 fitness
         public double fitness;
+        // 当前分配为空的 fitness (也就是 batchAllocationStartIndex 之前的分配的 fitness)
+        // < 0 代表未计算
+        public double batchEmptyFitness = -1;
 
         // 最佳分配的运单列表 只存储当前批次的单
         public List<Shipment> bestBatchAllocationShipments;
         // 最佳分配的 fitness
         public double bestFitness;
+
+        int hitCount;
+        int missCount;
 
         /**
          * 计算新分配的 fitness 返回与上一个的差值
@@ -355,31 +376,66 @@ public class UDS {
          */
         double calcFitnessDiff(List<Shipment> allShipments, int batchStartIndex, int batchSize, AntColonyTSP antColonyTSP) {
 
-            // driverBatchAllocation.allocation 的长度不可能超过 32 所以取第一个 long 就可以
-            long allocationCacheKey = (int) allocation.toLongArray()[0];
-            Double cacheFitness = batchCache.get(allocationCacheKey);
-
-            double fitness;
-            if (cacheFitness != null) {
-                fitness = cacheFitness;
-            } else {
-                // 清掉当前 batch 分配的
-                while (allocationShipments.size() > batchAllocationStartIndex) {
-                    allocationShipments.remove(allocationShipments.size() - 1);
+            double fitness = -1;
+            long allocationCacheKey = -1;
+            if (allocation.isEmpty()) {
+                fitness = batchEmptyFitness;
+            } else if (batchCache != null) {
+                // driverBatchAllocation.allocation 的长度不可能超过 32 所以取第一个 long 就可以
+                allocationCacheKey = (int) allocation.toLongArray()[0];
+                Double cacheFitness = batchCache.get(allocationCacheKey);
+                if (cacheFitness != null) {
+                    fitness = cacheFitness;
+                    hitCount++;
+//                    System.out.println("calcFitnessDiff cache hit " + allocationCacheKey + " hitCount: " + hitCount + " " + (hitCount / (float) (hitCount + missCount)) + " " + driver);
+                } else {
+                    missCount++;
+//                    System.out.println("calcFitnessDiff cache miss " + allocationCacheKey + " missCount: " + missCount + " " + (hitCount / (float) (hitCount + missCount)) + " " + driver);
                 }
+            }
 
-                // 添加新的分配
-                for (int i = batchStartIndex; i < batchStartIndex + batchSize; ++i) {
-                    if (allocation.get(i)) {
-                        allocationShipments.add(allShipments.get(i));
+            // 清掉当前 batch 分配的
+            while (allocationShipments.size() > batchAllocationStartIndex) {
+                allocationShipments.remove(allocationShipments.size() - 1);
+            }
+            // 添加新的分配
+            for (int i = 0; i < batchSize; ++i) {
+                if (allocation.get(i)) {
+                    allocationShipments.add(allShipments.get(batchStartIndex + i));
+                }
+            }
+
+            // 计算当前分配的 fitness
+            if (fitness < 0) {
+                if (allocationShipments.isEmpty()) {
+                    fitness = 0;
+                } else {
+                    // TODO 为了测试暂时限制一下
+                    if (allocationShipments.size() > 40) {
+//                        System.out.println("xxxx " + allocationShipments.size());
+                        fitness = 99999999;
+                    } else {
+                        // TODO
+                        long start = System.currentTimeMillis();
+                        TSPResponse tspResponse = antColonyTSP.driverAndShipments(driver, allocationShipments).maxIterations(-1).run();
+                        long time = System.currentTimeMillis() - start;
+
+                        if (time < minTspTime) {
+                            minTspTime = time;
+                        } else if (time > maxTspTime) {
+                            maxTspTime = time;
+                        }
+                        tspRunTimes++;
+                        totalTspTime += time;
+                        // TODO
+                        fitness = tspResponse.length;
                     }
                 }
 
-                if (!allocationShipments.isEmpty()) {
-                    TSPResponse tspResponse = antColonyTSP.driverAndShipments(driver, allocationShipments).run();
-                    fitness = tspResponse.fitness;
-                } else {
-                    fitness = 0;
+                if (allocation.isEmpty()) {
+                    batchEmptyFitness = fitness;
+                } else if (batchCache != null) {
+                    batchCache.put(allocationCacheKey, fitness);
                 }
             }
 
@@ -415,10 +471,26 @@ public class UDS {
             fitness = bestFitness;
 
             allocation.clear();
-            batchCache.clear();
 
-            // 下一个 batch 的空分配就是当前的最佳分配
-            batchCache.put(0L, bestFitness);
+            if (batchCache != null) {
+                batchCache.clear();
+            }
+            batchEmptyFitness = bestFitness;
+        }
+
+        @Override
+        public String toString() {
+            return "DriverBatchAllocation{" +
+                    "allocation=" + allocation +
+                    ", allocationShipments=" + allocationShipments +
+                    ", batchAllocationStartIndex=" + batchAllocationStartIndex +
+                    ", fitness=" + fitness +
+                    ", bestBatchAllocationShipments=" + bestBatchAllocationShipments +
+                    ", bestFitness=" + bestFitness +
+                    ", batchCache=" + (batchCache == null ? batchCache : batchCache.size()) +
+                    '}';
         }
     }
+
+
 }
