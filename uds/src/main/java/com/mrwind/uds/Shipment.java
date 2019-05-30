@@ -2,6 +2,7 @@ package com.mrwind.uds;
 
 /**
  * 运单
+ * TODO 支持已取件运单 也就是不需要去 sender
  */
 public class Shipment {
     public String id;

@@ -165,9 +165,9 @@ public class Main {
 
         List<Shipment> shipmentList = getRandomShipments(50);
 
-        UDS uds = new UDS();
+        UDS uds = new UDS(drivers, shipmentList);
 
-        Response response = uds.run(drivers, shipmentList);
+        Response response = uds.run();
 
         output(response);
     }
@@ -191,9 +191,9 @@ public class Main {
 
         List<Shipment> shipmentList = getRandomShipments(15);
 
-        UDS uds = new UDS();
+        UDS uds = new UDS(drivers, shipmentList);
 
-        Response response = uds.run(drivers, shipmentList);
+        Response response = uds.run();
 
         output(response);
     }
@@ -204,9 +204,20 @@ public class Main {
         List<Driver> drivers = responseInput.driverList;
         List<Shipment> shipmentList = responseInput.shipmentList;
 
-        UDS uds = new UDS();
-        Response response = uds.run(drivers, shipmentList);
+        UDS uds = new UDS(drivers, shipmentList);
+        Response response = uds.run();
         output(response);
+    }
+
+    static void test4() throws Exception {
+        Response responseInput = getInputDataFromFile();
+
+        List<Driver> drivers = responseInput.driverList;
+        List<Shipment> shipmentList = responseInput.shipmentList;
+
+        UDS uds = new UDS(drivers, shipmentList);
+        Response response = uds.run1( 20);
+        output(response, "uds1.json");
     }
 
     static void testKGrayCode() {
@@ -229,13 +240,14 @@ public class Main {
 
     public static void main(String[] args) throws Exception {
 
-//        outputRandomInputData(4, 40);
+        outputRandomInputData(2, 20);
 
 //        test1();
 //        test2();
 //        test3();
+        test4();
 
-        testKGrayCode();
+//        testKGrayCode();
 //        TSPTest.main(args);
 //        JeneticsTest.main(args);
     }
