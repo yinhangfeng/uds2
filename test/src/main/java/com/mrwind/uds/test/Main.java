@@ -5,6 +5,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.TypeReference;
 import com.alibaba.fastjson.serializer.SerializerFeature;
 import com.mrwind.uds.*;
+import com.mrwind.uds.tsp.AntColonyTSP;
 import com.mrwind.uds.util.CoordinateUtils;
 import com.mrwind.uds.util.KGrayCode;
 import org.apache.commons.io.FileUtils;
@@ -13,6 +14,7 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -239,7 +241,7 @@ public class Main {
         UDS uds = new UDS(drivers, shipmentList);
         Response response = null;
         long start = System.currentTimeMillis();
-        response = uds.run1(1);
+        response = uds.run1(2);
 
         double fitness = 0;
         for (Response.DriverAllocation driverAllocation : response.driverAllocations) {
@@ -256,17 +258,29 @@ public class Main {
         output(response, "uds1.json");
     }
 
-    // batchSize
+    /**
+     * batchSize
+     * 当每个司机最大单量较少时 蚁群会使用穷举 所以结果是确定的 此时 batchSize 越大 最终结果会略微好一些
+     * 但最大单量增加时 由于会执行蚁群算法 batchSize 大的执行蚁群时平均点数会增加(如果没有单量限制 算法结果比较倾向于分给一个人? 所以能证明 batchSize 越大效果越好么?)
+     * 蚁群点数越多结果越不准确偏大越多 导致最终看到的数值结果反而是小 batchSize 会略微好一点?
+     * 增加 MAX_EXHAUSTIVE_COUNT 之后能部分验证猜想
+     */
     static void test5() throws Exception {
         Response responseInput = getInputDataFromFile();
 
         List<Driver> drivers = responseInput.driverList;
         List<Shipment> shipmentList = responseInput.shipmentList;
 
+//        AntColonyTSP.MAX_EXHAUSTIVE_COUNT = 14;
+
+        double[] fitnessTotals = new double[3];
+
         UDS uds = new UDS(drivers, shipmentList);
         Response response = null;
-        for (int j = 0; j < 2; ++j) {
-            for (int i = 1; i <= 2; ++i) {
+        for (int j = 0; j < 6; ++j) {
+            System.out.println();
+            System.out.println("test5 " + j);
+            for (int i = 1; i <= 3; ++i) {
                 long start = System.currentTimeMillis();
                 response = uds.run1(i);
 
@@ -277,12 +291,15 @@ public class Main {
 
                 System.out.println("test5 " + i + " fitness: " + fitness);
                 System.out.println("run time: " + (System.currentTimeMillis() - start));
+
+                fitnessTotals[i - 1] += fitness;
             }
 
             Collections.shuffle(shipmentList);
         }
 
 
+        System.out.println("fitnessTotals " + Arrays.toString(fitnessTotals));
         System.out.println(response);
         System.out.println("minTspTime: " + UDS.minTspTime + " maxTspTime: " + UDS.maxTspTime + " totalTspTime: " + UDS.totalTspTime + " avgTspTime: " + (UDS.totalTspTime / (double) UDS.tspRunTimes));
 
@@ -291,12 +308,13 @@ public class Main {
 
     public static void main(String[] args) throws Exception {
 
-        outputRandomInputData(10, 80);
+        outputRandomInputData(20, 80);
 
 //        test1();
 //        test2();
-        test3();
-        test4();
+//        test3();
+//        test4();
+        test5();
 
 //        testKGrayCode();
 //        TSPTest.main(args);

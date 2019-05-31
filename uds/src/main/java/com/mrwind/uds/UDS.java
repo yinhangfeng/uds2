@@ -28,6 +28,7 @@ public class UDS {
     public static long maxTspTime = Long.MIN_VALUE;
     public static long totalTspTime = 0;
     public static long tspRunTimes = 0;
+    public static long tspRunShipmentCount = 0;
 
     public UDS(List<Driver> driverList, List<Shipment> shipmentList) {
         this.driverList = driverList;
@@ -223,8 +224,8 @@ public class UDS {
         // 当前 batch 大小 最后一个 batch 可能小于 batchSize
         int currentBatchSize = Math.min(batchSize, shipmentCount);
         List<DriverBatchAllocation> driverBatchAllocations = new ArrayList<>(driverCount);
-        // 当 batchSize <= 2 获取 driverCount <= 2 时 对每个司机来说 每一次迭代分配情况都不同 所以就不需要缓存了
-        boolean driverBatchAllocationCache = currentBatchSize > 2 && driverCount > 2;
+        // 当 currentBatchSize == 1 或 driverCount <= 2 时 对每个司机来说 每一次迭代分配情况都不同 所以就不需要缓存了(空分配是单独存储的)
+        boolean driverBatchAllocationCache = currentBatchSize > 1 && driverCount > 2;
         for (Driver driver : driverList) {
             driverBatchAllocations.add(new DriverBatchAllocation(driver, currentBatchSize, driverBatchAllocationCache));
         }
@@ -242,6 +243,8 @@ public class UDS {
         double bestFitness;
         double currentFitness = 0;
         int batchStartIndex = 0;
+
+        int xxx = 0;
         for (; ; ) {
             bestFitness = Double.MAX_VALUE;
             // 初始本批次所有单都分给第一个司机
@@ -250,6 +253,7 @@ public class UDS {
             }
 
             for (KGrayCode.Element change : kGrayCode) {
+                ++xxx;
                 if (change.oldValue >= 0) {
                     oldDriver = driverList.get(change.oldValue);
                     oldDriverBatchAllocation = driverBatchAllocations.get(change.oldValue);
@@ -309,7 +313,7 @@ public class UDS {
             Response.DriverAllocation driverAllocation = new Response.DriverAllocation();
             driverAllocation.shipmentList = driverBatchAllocation.allocationShipments;
             // 在迭代过程中将最佳的 fitness 分配情况的路线保存下来的代价太大 所以最后再重新算一次
-            driverAllocation.response = antColonyTSP.driverAndShipments(driverBatchAllocation.driver, driverBatchAllocation.allocationShipments).run();
+            driverAllocation.response = antColonyTSP.driverAndShipments(driverBatchAllocation.driver, driverBatchAllocation.allocationShipments).maxIterations(-1).run();
             driverAllocations.add(driverAllocation);
         }
 
@@ -319,6 +323,9 @@ public class UDS {
         response.driverList = driverList;
         response.shipmentList = shipmentList;
         response.driverAllocations = driverAllocations;
+
+        System.out.println("xxxx " + xxx);
+        System.out.println("tspRunTimes: " + UDS.tspRunTimes + " minTspTime: " + UDS.minTspTime + " maxTspTime: " + UDS.maxTspTime + " totalTspTime: " + UDS.totalTspTime + " avgTspTime: " + (UDS.totalTspTime / (double) UDS.tspRunTimes) + " tspRunShipmentCount: " + tspRunShipmentCount);
 
         return response;
     }
@@ -387,7 +394,7 @@ public class UDS {
                 if (cacheFitness != null) {
                     fitness = cacheFitness;
                     hitCount++;
-//                    System.out.println("calcFitnessDiff cache hit " + allocationCacheKey + " hitCount: " + hitCount + " " + (hitCount / (float) (hitCount + missCount)) + " " + driver);
+//                    System.out.println("calcFitnessDiff cache hit " + allocation + " " + allocationCacheKey + " hitCount: " + hitCount + " " + (hitCount / (float) (hitCount + missCount)) + " " + (hitCount + missCount) + " " + driver);
                 } else {
                     missCount++;
 //                    System.out.println("calcFitnessDiff cache miss " + allocationCacheKey + " missCount: " + missCount + " " + (hitCount / (float) (hitCount + missCount)) + " " + driver);
@@ -411,9 +418,9 @@ public class UDS {
                     fitness = 0;
                 } else {
                     // TODO 为了测试暂时限制一下
-                    if (allocationShipments.size() > 40) {
+                    if (allocationShipments.size() > 7) {
 //                        System.out.println("xxxx " + allocationShipments.size());
-                        fitness = 99999999;
+                        fitness = 999999999;
                     } else {
                         // TODO
                         long start = System.currentTimeMillis();
@@ -427,6 +434,7 @@ public class UDS {
                         }
                         tspRunTimes++;
                         totalTspTime += time;
+                        tspRunShipmentCount += allocationShipments.size();
                         // TODO
                         fitness = tspResponse.length;
                     }
