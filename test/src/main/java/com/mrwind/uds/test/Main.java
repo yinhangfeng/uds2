@@ -241,7 +241,7 @@ public class Main {
         UDS uds = new UDS(drivers, shipmentList);
         Response response = null;
         long start = System.currentTimeMillis();
-        response = uds.run1(2);
+        response = uds.run1(3);
 
         double fitness = 0;
         for (Response.DriverAllocation driverAllocation : response.driverAllocations) {
@@ -289,7 +289,7 @@ public class Main {
                     fitness += driverAllocation.response.length;
                 }
 
-                System.out.println("test5 " + i + " fitness: " + fitness);
+                System.out.println("test5 " + i + " tspResponse: " + fitness);
                 System.out.println("run time: " + (System.currentTimeMillis() - start));
 
                 fitnessTotals[i - 1] += fitness;
@@ -308,13 +308,13 @@ public class Main {
 
     public static void main(String[] args) throws Exception {
 
-        outputRandomInputData(20, 80);
+        outputRandomInputData(4, 20);
 
 //        test1();
 //        test2();
 //        test3();
-//        test4();
-        test5();
+        test4();
+//        test5();
 
 //        testKGrayCode();
 //        TSPTest.main(args);

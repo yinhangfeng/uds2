@@ -7,6 +7,13 @@ import java.util.List;
 
 public class TSPResponse {
 
+    public static TSPResponse EMPTY_RESPONSE;
+
+    static {
+        EMPTY_RESPONSE = new TSPResponse();
+        EMPTY_RESPONSE.tour = new int[0];
+    }
+
     /**
      * 总距离
      */
@@ -33,7 +40,7 @@ public class TSPResponse {
     public String toString() {
         return "TSPResponse{" +
                 "length=" + length +
-                ", fitness=" + fitness +
+                ", tspResponse=" + fitness +
                 ", tour=" + Arrays.toString(tour) +
                 ", endEqStart=" + endEqStart +
                 ", iterationNum=" + iterationNum +

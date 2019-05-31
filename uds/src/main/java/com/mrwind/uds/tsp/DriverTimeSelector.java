@@ -5,8 +5,8 @@ import com.mrwind.uds.Point;
 import com.mrwind.uds.TSPPoint;
 
 /**
- * 按司机工作时间以及取派点时间窗计算 fitness
- * ant.fitness 代表总消耗时间 单位 ms
+ * 按司机工作时间以及取派点时间窗计算 tspResponse
+ * ant.tspResponse 代表总消耗时间 单位 ms
  */
 public class DriverTimeSelector implements Selector {
 
@@ -99,7 +99,7 @@ public class DriverTimeSelector implements Selector {
             addTime += deliveryTime;
         }
 
-//        System.out.println("calcFitness oriFitness: " + ant.fitness + " addTime: " + addTime);
+//        System.out.println("calcFitness oriFitness: " + ant.tspResponse + " addTime: " + addTime);
 
         ant.fitness += addTime;
         return ant.fitness;

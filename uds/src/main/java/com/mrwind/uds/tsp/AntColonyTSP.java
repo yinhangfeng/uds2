@@ -347,7 +347,7 @@ public class AntColonyTSP {
         if (selector == Selector.LENGTH_SELECTOR && endPointIndex == RANDOM_POINT_INDEX) {
             // 贪心优化局部路径
             // 目前不支持优化终点回到起点 所以 pointCount - 1
-            // TODO 暂不支持基于 fitness 比较时的交换
+            // TODO 暂不支持基于 tspResponse 比较时的交换
             // TODO 对起点返回终点的交换有 BUG
             // TODO 暂不支持指定终点的交换
             double newBestLength = Greedy.greedyTour(tour, bestLength, endEqStart ? pointCount - 1 : pointCount, distance, points);
@@ -629,7 +629,7 @@ public class AntColonyTSP {
                             recursiveTSP(currentIndex + 1, ant, bestRes);
                         }
 
-                        // 非最后一步才需要恢复 length 和 fitness
+                        // 非最后一步才需要恢复 length 和 tspResponse
                         ant.length = prevLength;
                         ant.fitness = prevFitness;
                     }

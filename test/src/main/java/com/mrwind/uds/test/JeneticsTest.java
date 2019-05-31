@@ -7,7 +7,7 @@ import io.jenetics.util.Factory;
 
 public class JeneticsTest {
 
-    // 2.) Definition of the fitness function.
+    // 2.) Definition of the tspResponse function.
     private static Integer eval(Genotype<BitGene> gt) {
         return gt.getChromosome()
                 .as(BitChromosome.class)
@@ -49,7 +49,7 @@ public class JeneticsTest {
         }
         double v = a / length;
 
-        System.out.println("fitness thread:" + Thread.currentThread().getName() + " sum: " + sum + " avg: " + avg + " v: " + v);
+        System.out.println("tspResponse thread:" + Thread.currentThread().getName() + " sum: " + sum + " avg: " + avg + " v: " + v);
 
         // 目标是使总和最大 也就是最好所有基因都为 9999
         // 如果只是求和的话 在基因数量比较多时 最终结果没比随机好多少
@@ -65,7 +65,7 @@ public class JeneticsTest {
     static void test1() {
         Factory<Genotype<IntegerGene>> gtf = Genotype.of(IntegerChromosome.of(0, 9999, 2000));
 
-        // 对于低代价的 fitness 函数 使用多线程反而会减速
+        // 对于低代价的 tspResponse 函数 使用多线程反而会减速
         Engine<IntegerGene, Double> engine = Engine.builder(JeneticsTest::test1Fitness, gtf)
                 .populationSize(1000)
                 .offspringFraction(0.95)

@@ -109,14 +109,14 @@ public class UDS {
                     driverAllocation.response = tspResponse;
 
                     double driverFitness = tspResponse.length;
-//                    double driverFitness = tspResponse.fitness;
+//                    double driverFitness = tspResponse.tspResponse;
 
 //                    // 超最大单量惩罚
 //                    if (driver.maxLoad > 0) {
 //                        if (driverShipments.size() > driver.maxLoad) {
 //                            driverFitness *= driverShipments.size() / ((double) driver.maxLoad);
 //
-//                            System.out.println("fitness maxLoad " + driverShipments.size() / ((double) driver.maxLoad));
+//                            System.out.println("tspResponse maxLoad " + driverShipments.size() / ((double) driver.maxLoad));
 //                        }
 //                    }
 //
@@ -125,7 +125,7 @@ public class UDS {
 //                        if (tspResponse.length > driver.maxMileage) {
 //                            driverFitness *= Math.pow(tspResponse.length / driver.maxMileage, 2);
 //
-//                            System.out.println("fitness maxMileage " + Math.pow(tspResponse.length / driver.maxMileage, 2));
+//                            System.out.println("tspResponse maxMileage " + Math.pow(tspResponse.length / driver.maxMileage, 2));
 //                        }
 //                    }
 //
@@ -135,7 +135,7 @@ public class UDS {
 //                        if (workStartTime + driverFitness > driver.workEndTime) {
 //                            driverFitness += (workStartTime + driverFitness - driver.workEndTime) * 2;
 //
-//                            System.out.println("fitness workEndTime " + Math.pow(tspResponse.length / driver.maxMileage, 2));
+//                            System.out.println("tspResponse workEndTime " + Math.pow(tspResponse.length / driver.maxMileage, 2));
 //                        }
 //                    }
 
@@ -148,7 +148,7 @@ public class UDS {
             response.driverList = driverList;
             chromosome.response = response;
 
-//            System.out.println("fitness " + result + " " + Thread.currentThread().getName());
+//            System.out.println("tspResponse " + result + " " + Thread.currentThread().getName());
 
             return result;
         }, gtf)
@@ -235,11 +235,9 @@ public class UDS {
         // TODO
         AntColonyTSP antColonyTSP = AntColonyTSP.obtain(128).distance(distance);
 
-        Driver oldDriver;
-        Driver newDriver;
         DriverBatchAllocation oldDriverBatchAllocation;
         DriverBatchAllocation newDriverBatchAllocation;
-        // 一个 batch 的最佳分配的 fitness (最后一个 batch 结束之后就是 最佳分配的 fitness)
+        // 一个 batch 的最佳分配的 tspResponse (最后一个 batch 结束之后就是 最佳分配的 tspResponse)
         double bestFitness;
         double currentFitness = 0;
         int batchStartIndex = 0;
@@ -255,16 +253,12 @@ public class UDS {
             for (KGrayCode.Element change : kGrayCode) {
                 ++xxx;
                 if (change.oldValue >= 0) {
-                    oldDriver = driverList.get(change.oldValue);
                     oldDriverBatchAllocation = driverBatchAllocations.get(change.oldValue);
                     assert oldDriverBatchAllocation.allocation.get(change.index);
                     oldDriverBatchAllocation.allocation.set(change.index, false);
                     currentFitness += oldDriverBatchAllocation.calcFitnessDiff(shipmentList, batchStartIndex, currentBatchSize, antColonyTSP);
-                } else {
-                    oldDriverBatchAllocation = null;
                 }
 
-                newDriver = driverList.get(change.value);
                 newDriverBatchAllocation = driverBatchAllocations.get(change.value);
                 assert !newDriverBatchAllocation.allocation.get(change.index);
                 newDriverBatchAllocation.allocation.set(change.index, true);
@@ -290,7 +284,7 @@ public class UDS {
                 driverBatchAllocation.prepareNextBatch();
             }
 
-            // 下一个 batch 的 fitness 初值为当前的 bestFitness
+            // 下一个 batch 的 tspResponse 初值为当前的 bestTspResponse
             currentFitness = bestFitness;
 
             batchStartIndex += batchSize;
@@ -312,8 +306,9 @@ public class UDS {
         for (DriverBatchAllocation driverBatchAllocation : driverBatchAllocations) {
             Response.DriverAllocation driverAllocation = new Response.DriverAllocation();
             driverAllocation.shipmentList = driverBatchAllocation.allocationShipments;
-            // 在迭代过程中将最佳的 fitness 分配情况的路线保存下来的代价太大 所以最后再重新算一次
-            driverAllocation.response = antColonyTSP.driverAndShipments(driverBatchAllocation.driver, driverBatchAllocation.allocationShipments).maxIterations(-1).run();
+            // 在迭代过程中将最佳的 tspResponse 分配情况的路线保存下来的代价太大 所以最后再重新算一次
+//            antColonyTSP.driverAndShipments(driverBatchAllocation.driver, driverBatchAllocation.allocationShipments).maxIterations(-1).run();
+            driverAllocation.response = driverBatchAllocation.tspResponse;
             driverAllocations.add(driverAllocation);
         }
 
@@ -331,6 +326,32 @@ public class UDS {
     }
 
     static class DriverBatchAllocation {
+
+        public Driver driver;
+        // 当前批次分配 tspResponse 的缓存 其中 key 为 0 的表示当前批次未分配 也就 batchAllocationStartIndex 之前的分配
+        public HashMap<Long, TSPResponse> batchCache;
+        // 当前批次的运单分配情况 每一 bit 代表该单是否分配给了当前司机
+        public BitSet allocation;
+        // 当前已分配的运单
+        // 最开始一段为 driver.allocatedShipments 之后 batchAllocationStartIndex 之前为 已经分配的
+        // 再之后为当前 batch 分配的
+        public List<Shipment> allocationShipments;
+        // 当前 batch 分配在 allocationShipments 中的开始 index
+        public int batchAllocationStartIndex;
+        // 当前分配的 tspResponse
+        public TSPResponse tspResponse;
+        // 当前分配为空的 TSPResponse (也就是 batchAllocationStartIndex 之前的分配的 TSPResponse)
+        public TSPResponse batchEmptyTspResponse;
+
+        // 最佳分配的运单列表 只存储当前批次的单
+        public List<Shipment> bestBatchAllocationShipments;
+        // 最佳分配的 tspResponse
+        public TSPResponse bestTspResponse;
+
+        int hitCount;
+        int missCount;
+
+
         public DriverBatchAllocation(Driver driver, int batchSize, boolean cache) {
             this.driver = driver;
             allocation = new BitSet(batchSize);
@@ -346,35 +367,10 @@ public class UDS {
             bestBatchAllocationShipments = new ArrayList<>();
         }
 
-        public Driver driver;
-        // 当前批次分配 fitness 的缓存 其中 key 为 0 的表示当前批次未分配 也就 batchAllocationStartIndex 之前的分配
-        public HashMap<Long, Double> batchCache;
-        // 当前批次的运单分配情况 每一 bit 代表该单是否分配给了当前司机
-        public BitSet allocation;
-        // 当前已分配的运单
-        // 最开始一段为 driver.allocatedShipments 之后 batchAllocationStartIndex 之前为 已经分配的
-        // 再之后为当前 batch 分配的
-        public List<Shipment> allocationShipments;
-        // 当前 batch 分配在 allocationShipments 中的开始 index
-        public int batchAllocationStartIndex;
-        // 当前分配的 fitness
-        public double fitness;
-        // 当前分配为空的 fitness (也就是 batchAllocationStartIndex 之前的分配的 fitness)
-        // < 0 代表未计算
-        public double batchEmptyFitness = -1;
-
-        // 最佳分配的运单列表 只存储当前批次的单
-        public List<Shipment> bestBatchAllocationShipments;
-        // 最佳分配的 fitness
-        public double bestFitness;
-
-        int hitCount;
-        int missCount;
-
         /**
-         * 计算新分配的 fitness 返回与上一个的差值
+         * 计算新分配的 tspResponse 返回与上一个的差值
          * <p>
-         * 如果是第一次则会返回当前分配的 fitness (因为之前为 0)
+         * 如果是第一次则会返回当前分配的 tspResponse (因为之前为 0)
          *
          * @param allShipments
          * @param batchStartIndex
@@ -383,16 +379,15 @@ public class UDS {
          */
         double calcFitnessDiff(List<Shipment> allShipments, int batchStartIndex, int batchSize, AntColonyTSP antColonyTSP) {
 
-            double fitness = -1;
+            TSPResponse tspResponse = null;
             long allocationCacheKey = -1;
             if (allocation.isEmpty()) {
-                fitness = batchEmptyFitness;
+                tspResponse = batchEmptyTspResponse;
             } else if (batchCache != null) {
                 // driverBatchAllocation.allocation 的长度不可能超过 32 所以取第一个 long 就可以
                 allocationCacheKey = (int) allocation.toLongArray()[0];
-                Double cacheFitness = batchCache.get(allocationCacheKey);
-                if (cacheFitness != null) {
-                    fitness = cacheFitness;
+                tspResponse = batchCache.get(allocationCacheKey);
+                if (tspResponse != null) {
                     hitCount++;
 //                    System.out.println("calcFitnessDiff cache hit " + allocation + " " + allocationCacheKey + " hitCount: " + hitCount + " " + (hitCount / (float) (hitCount + missCount)) + " " + (hitCount + missCount) + " " + driver);
                 } else {
@@ -412,19 +407,20 @@ public class UDS {
                 }
             }
 
-            // 计算当前分配的 fitness
-            if (fitness < 0) {
+            // 计算当前分配的 tspResponse
+            if (tspResponse == null) {
                 if (allocationShipments.isEmpty()) {
-                    fitness = 0;
+                    tspResponse = TSPResponse.EMPTY_RESPONSE;
                 } else {
                     // TODO 为了测试暂时限制一下
-                    if (allocationShipments.size() > 7) {
+                    if (allocationShipments.size() > 6) {
 //                        System.out.println("xxxx " + allocationShipments.size());
-                        fitness = 999999999;
+                        tspResponse = new TSPResponse();
+                        tspResponse.length = 999999999;
                     } else {
                         // TODO
                         long start = System.currentTimeMillis();
-                        TSPResponse tspResponse = antColonyTSP.driverAndShipments(driver, allocationShipments).maxIterations(-1).run();
+                        tspResponse = antColonyTSP.driverAndShipments(driver, allocationShipments).maxIterations(-1).run();
                         long time = System.currentTimeMillis() - start;
 
                         if (time < minTspTime) {
@@ -435,21 +431,23 @@ public class UDS {
                         tspRunTimes++;
                         totalTspTime += time;
                         tspRunShipmentCount += allocationShipments.size();
-                        // TODO
-                        fitness = tspResponse.length;
                     }
                 }
 
                 if (allocation.isEmpty()) {
-                    batchEmptyFitness = fitness;
+                    batchEmptyTspResponse = tspResponse;
                 } else if (batchCache != null) {
-                    batchCache.put(allocationCacheKey, fitness);
+                    // TODO batchSize 比较大时 缓存代价太大 可以考虑去掉一些缓存数据
+//                    tspResponse.tour = null;
+//                    tspResponse.originalPoints = null;
+                    batchCache.put(allocationCacheKey, tspResponse);
                 }
             }
 
-            double oldFitness = this.fitness;
-            this.fitness = fitness;
-            return fitness - oldFitness;
+            TSPResponse oldTspResponse = this.tspResponse;
+            this.tspResponse = tspResponse;
+            // TODO
+            return tspResponse.length - (oldTspResponse == null ? 0 : oldTspResponse.length);
         }
 
         /**
@@ -461,7 +459,7 @@ public class UDS {
                 bestBatchAllocationShipments.add(allocationShipments.get(i));
             }
 
-            bestFitness = fitness;
+            bestTspResponse = tspResponse;
         }
 
         /**
@@ -476,14 +474,14 @@ public class UDS {
             batchAllocationStartIndex = allocationShipments.size();
             bestBatchAllocationShipments.clear();
 
-            fitness = bestFitness;
+            tspResponse = bestTspResponse;
 
             allocation.clear();
 
             if (batchCache != null) {
                 batchCache.clear();
             }
-            batchEmptyFitness = bestFitness;
+            batchEmptyTspResponse = bestTspResponse;
         }
 
         @Override
@@ -492,9 +490,9 @@ public class UDS {
                     "allocation=" + allocation +
                     ", allocationShipments=" + allocationShipments +
                     ", batchAllocationStartIndex=" + batchAllocationStartIndex +
-                    ", fitness=" + fitness +
+                    ", tspResponse=" + tspResponse +
                     ", bestBatchAllocationShipments=" + bestBatchAllocationShipments +
-                    ", bestFitness=" + bestFitness +
+                    ", bestTspResponse=" + bestTspResponse +
                     ", batchCache=" + (batchCache == null ? batchCache : batchCache.size()) +
                     '}';
         }
