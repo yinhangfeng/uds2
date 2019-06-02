@@ -241,11 +241,13 @@ public class Main {
         UDS uds = new UDS(drivers, shipmentList);
         Response response = null;
         long start = System.currentTimeMillis();
-        response = uds.run1(3);
+        response = uds.run1(1);
 
         double fitness = 0;
         for (Response.DriverAllocation driverAllocation : response.driverAllocations) {
-            fitness += driverAllocation.response.length;
+            if (driverAllocation.response != null) {
+                fitness += driverAllocation.response.length;
+            }
         }
 
         System.out.println("test4 fitness: " + fitness);
@@ -286,7 +288,9 @@ public class Main {
 
                 double fitness = 0;
                 for (Response.DriverAllocation driverAllocation : response.driverAllocations) {
-                    fitness += driverAllocation.response.length;
+                    if (driverAllocation.response != null) {
+                        fitness += driverAllocation.response.length;
+                    }
                 }
 
                 System.out.println("test5 " + i + " tspResponse: " + fitness);
@@ -308,7 +312,7 @@ public class Main {
 
     public static void main(String[] args) throws Exception {
 
-        outputRandomInputData(4, 20);
+//        outputRandomInputData(10, 100);
 
 //        test1();
 //        test2();

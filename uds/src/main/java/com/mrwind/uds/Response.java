@@ -18,6 +18,9 @@ public class Response {
          * 司机分配的运单 包括司机身上原来已分配不可重分的部分
          */
         public List<Shipment> shipmentList;
+        /**
+         * 分配运单的路线 为空代表未分配运单
+         */
         public TSPResponse response;
 
         @Override

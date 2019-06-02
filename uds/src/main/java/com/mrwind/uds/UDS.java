@@ -413,7 +413,7 @@ public class UDS {
                     tspResponse = TSPResponse.EMPTY_RESPONSE;
                 } else {
                     // TODO 为了测试暂时限制一下
-                    if (allocationShipments.size() > 6) {
+                    if (allocationShipments.size() > 15) {
 //                        System.out.println("xxxx " + allocationShipments.size());
                         tspResponse = new TSPResponse();
                         tspResponse.length = 999999999;
