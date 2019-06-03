@@ -11,11 +11,8 @@ import org.apache.commons.io.FileUtils;
 
 import java.io.File;
 import java.io.IOException;
-import java.sql.Date;
-import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
 
@@ -392,33 +389,33 @@ public class TSPTest {
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm");
 
         driver.workStartTime = simpleDateFormat.parse("2019-05-26 08:00").getTime();
-        List<Shipment> shipmentList = Main.getRandomShipments(8);
+        List<Shipment> shipments = Main.getRandomShipments(8);
 
-        shipmentList.get(0).getSender().startTime = simpleDateFormat.parse("2019-05-26 09:00").getTime();
-        shipmentList.get(0).getSender().endTime = simpleDateFormat.parse("2019-05-26 10:00").getTime();
-        shipmentList.get(0).getReceiver().startTime = simpleDateFormat.parse("2019-05-26 10:00").getTime();
-        shipmentList.get(0).getReceiver().endTime = simpleDateFormat.parse("2019-05-26 14:00").getTime();
+        shipments.get(0).getSender().startTime = simpleDateFormat.parse("2019-05-26 09:00").getTime();
+        shipments.get(0).getSender().endTime = simpleDateFormat.parse("2019-05-26 10:00").getTime();
+        shipments.get(0).getReceiver().startTime = simpleDateFormat.parse("2019-05-26 10:00").getTime();
+        shipments.get(0).getReceiver().endTime = simpleDateFormat.parse("2019-05-26 14:00").getTime();
 
-        shipmentList.get(1).getSender().startTime = simpleDateFormat.parse("2019-05-26 09:00").getTime();
-        shipmentList.get(1).getSender().endTime = simpleDateFormat.parse("2019-05-26 11:00").getTime();
-        shipmentList.get(1).getReceiver().startTime = simpleDateFormat.parse("2019-05-26 13:00").getTime();
-        shipmentList.get(1).getReceiver().endTime = simpleDateFormat.parse("2019-05-26 14:10").getTime();
+        shipments.get(1).getSender().startTime = simpleDateFormat.parse("2019-05-26 09:00").getTime();
+        shipments.get(1).getSender().endTime = simpleDateFormat.parse("2019-05-26 11:00").getTime();
+        shipments.get(1).getReceiver().startTime = simpleDateFormat.parse("2019-05-26 13:00").getTime();
+        shipments.get(1).getReceiver().endTime = simpleDateFormat.parse("2019-05-26 14:10").getTime();
 
-        shipmentList.get(2).getSender().startTime = simpleDateFormat.parse("2019-05-26 14:00").getTime();
-        shipmentList.get(2).getSender().endTime = simpleDateFormat.parse("2019-05-26 15:00").getTime();
-        shipmentList.get(2).getReceiver().startTime = simpleDateFormat.parse("2019-05-26 15:00").getTime();
-        shipmentList.get(2).getReceiver().endTime = simpleDateFormat.parse("2019-05-26 17:00").getTime();
+        shipments.get(2).getSender().startTime = simpleDateFormat.parse("2019-05-26 14:00").getTime();
+        shipments.get(2).getSender().endTime = simpleDateFormat.parse("2019-05-26 15:00").getTime();
+        shipments.get(2).getReceiver().startTime = simpleDateFormat.parse("2019-05-26 15:00").getTime();
+        shipments.get(2).getReceiver().endTime = simpleDateFormat.parse("2019-05-26 17:00").getTime();
 
-        Main.outputInputData(Collections.singletonList(driver), shipmentList, "tspInput1.json");
+        Main.outputInputData(Collections.singletonList(driver), shipments, "tspInput1.json");
 
-        AntColonyTSP antColonyTSP = AntColonyTSP.obtain(driver, shipmentList);
+        AntColonyTSP antColonyTSP = AntColonyTSP.obtain(driver, shipments);
 
         long currentTime = simpleDateFormat.parse("2019-05-26 7:00").getTime();
 
         TSPResponse response = antColonyTSP
 //                .startPointIndex(0)
 //                .endPointIndex(AntColonyTSP.RANDOM_POINT_INDEX)
-                .distance(new DistanceImpl(driver, shipmentList, true))
+                .distance(new DistanceImpl(driver, shipments, true))
                 .selector(new DriverTimeSelector(driver, currentTime))
                 .run();
 
@@ -432,10 +429,10 @@ public class TSPTest {
     static void test8() throws Exception {
         Response data = Main.getInputDataFromFile("tspInput1.json");
 
-        Driver driver = data.driverList.get(0);
-        List<Shipment> shipmentList = data.shipmentList;
+        Driver driver = data.drivers.get(0);
+        List<Shipment> shipments = data.shipments;
 
-        AntColonyTSP antColonyTSP = AntColonyTSP.obtain(driver, shipmentList);
+        AntColonyTSP antColonyTSP = AntColonyTSP.obtain(driver, shipments);
 
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm");
         long currentTime = simpleDateFormat.parse("2019-05-26 7:00").getTime();
@@ -443,7 +440,7 @@ public class TSPTest {
         TSPResponse response = antColonyTSP
                 .startPointIndex(0)
                 .endPointIndex(AntColonyTSP.RANDOM_POINT_INDEX)
-                .distance(new DistanceImpl(driver, shipmentList, true))
+                .distance(new DistanceImpl(driver, shipments, true))
                 .selector(new DriverTimeSelector(driver, currentTime))
                 .run();
 

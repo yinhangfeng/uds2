@@ -12,13 +12,11 @@ import io.jenetics.util.Factory;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.HashMap;
 import java.util.List;
 
 public class UDS {
-    private List<Driver> driverList;
-    private List<Shipment> shipmentList;
+    private List<Driver> drivers;
+    private List<Shipment> shipments;
     private Distance distance;
     private long currentTime;
 
@@ -28,20 +26,20 @@ public class UDS {
     public static long tspRunTimes = 0;
     public static long tspRunShipmentCount = 0;
 
-    public UDS(List<Driver> driverList, List<Shipment> shipmentList) {
-        this.driverList = driverList;
-        this.shipmentList = shipmentList;
+    public UDS(List<Driver> drivers, List<Shipment> shipments) {
+        this.drivers = drivers;
+        this.shipments = shipments;
 
-        int driverCount = driverList.size();
-        int shipmentCount = shipmentList.size();
+        int driverCount = drivers.size();
+        int shipmentCount = shipments.size();
 
-        List<Shipment> allShipmentList = new ArrayList<>(shipmentList);
-        for (Driver driver : driverList) {
+        List<Shipment> allShipments = new ArrayList<>(shipments);
+        for (Driver driver : drivers) {
             if (driver.getAllocatedShipments() != null) {
-                allShipmentList.addAll(driver.getAllocatedShipments());
+                allShipments.addAll(driver.getAllocatedShipments());
             }
         }
-        distance = new DistanceImpl(driverList, allShipmentList, true);
+        distance = new DistanceImpl(drivers, allShipments, true);
 
         // TODO
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm");
@@ -54,8 +52,8 @@ public class UDS {
     }
 
     public Response run(EvolutionInit<IntegerGene> evolutionInit) {
-        int driverCount = driverList.size();
-        int shipmentCount = shipmentList.size();
+        int driverCount = drivers.size();
+        int shipmentCount = shipments.size();
 
         Factory<Genotype<IntegerGene>> gtf = Genotype.of(UDSChromosome.of(0, driverCount - 1, shipmentCount));
 
@@ -65,7 +63,7 @@ public class UDS {
             if (chromosome.response != null) {
                 // fitness 已经算好
                 // 1. 通过 EvolutionInit 提供的初始种群
-                // 2. 通过 Mutator 但未改变的 Genotype 由于 Phenotype 重新创建 导致 evaluated 标记被重置
+                // 2. 通过 Mutator 但未改变的 Genotype，由于 Phenotype 重新创建 导致 evaluated 标记被重置
 
                 return chromosome.response.getFitness();
             }
@@ -77,17 +75,17 @@ public class UDS {
             }
             // 将当前染色体的运单分配状况放入 每个司机的运单列表
             for (int i = 0; i < length; ++i) {
-                List<Shipment> driverShipments = driverAllocations.get(chromosome.getGene(i).intValue()).shipmentList;
-                driverShipments.add(shipmentList.get(i));
+                List<Shipment> driverShipments = driverAllocations.get(chromosome.getGene(i).intValue()).shipments;
+                driverShipments.add(shipments.get(i));
             }
 
             AntColonyTSP antColonyTSP;
 
             double result = 0;
             for (int i = 0; i < driverCount; ++i) {
-                Driver driver = driverList.get(i);
+                Driver driver = drivers.get(i);
                 Response.DriverAllocation driverAllocation = driverAllocations.get(i);
-                List<Shipment> driverShipments = driverAllocation.shipmentList;
+                List<Shipment> driverShipments = driverAllocation.shipments;
                 // 添加当前已分配不能重分的运单
                 List<Shipment> allocatedShipments = driver.getAllocatedShipments();
                 if (allocatedShipments != null) {
@@ -152,7 +150,7 @@ public class UDS {
 
             Response response = new Response();
             response.driverAllocations = driverAllocations;
-            response.driverList = driverList;
+            response.drivers = drivers;
             chromosome.response = response;
 
 //            System.out.println("tspResponse " + result + " " + Thread.currentThread().getName());
@@ -164,7 +162,7 @@ public class UDS {
                 .alterers(
 //                    new SinglePointCrossover<>(0.2),
                         new UniformCrossover<>(0.5),
-                        new Mutator<>(0.15)
+                        new Mutator<>(0.4)
                 )
                 // 默认的选择器 选出的结果中会包含重复的 但效果不错
 //                 .selector(new TournamentSelector<>())
@@ -214,8 +212,8 @@ public class UDS {
 //        EvolutionResult result = engine.stream().limit(50).collect(EvolutionResult.toBestEvolutionResult());
 //        Genotype resultGenotype = result.getBestPhenotype().getGenotype();
         Response response = resultGenotype.getChromosome().as(UDSChromosome.class).response;
-        response.driverList = driverList;
-        response.shipmentList = shipmentList;
+        response.drivers = drivers;
+        response.shipments = shipments;
         response.evolutionResults = evolutionResultStatistics.getSimpleEvolutionResults();
 
         System.out.println("result: " + resultGenotype);
@@ -236,15 +234,15 @@ public class UDS {
             throw new IllegalArgumentException("batchSize must <= 32");
         }
 
-        int shipmentCount = shipmentList.size();
+        int shipmentCount = shipments.size();
 //        int batchCount = (int) Math.ceil(shipmentCount / (double) batchSize);
-        int driverCount = driverList.size();
+        int driverCount = drivers.size();
         // 当前 batch 大小 最后一个 batch 可能小于 batchSize
         int currentBatchSize = Math.min(batchSize, shipmentCount);
         List<DriverBatchAllocation> driverBatchAllocations = new ArrayList<>(driverCount);
         // 当 currentBatchSize == 1 或 driverCount <= 2 时 对每个司机来说 每一次迭代分配情况都不同 所以就不需要缓存了(空分配是单独存储的)
         boolean driverBatchAllocationCache = currentBatchSize > 1 && driverCount > 2;
-        for (Driver driver : driverList) {
+        for (Driver driver : drivers) {
             driverBatchAllocations.add(new DriverBatchAllocation(driver, currentBatchSize, driverBatchAllocationCache));
         }
         // 通过类似格雷码的方式迭代一个 batch 的所有分配方案
@@ -273,13 +271,13 @@ public class UDS {
                     oldDriverBatchAllocation = driverBatchAllocations.get(change.oldValue);
                     assert oldDriverBatchAllocation.allocation.get(change.index);
                     oldDriverBatchAllocation.allocation.set(change.index, false);
-                    currentFitness += oldDriverBatchAllocation.calcFitnessDiff(shipmentList, batchStartIndex, currentBatchSize, antColonyTSP);
+                    currentFitness += oldDriverBatchAllocation.calcFitnessDiff(shipments, batchStartIndex, currentBatchSize, antColonyTSP);
                 }
 
                 newDriverBatchAllocation = driverBatchAllocations.get(change.value);
                 assert !newDriverBatchAllocation.allocation.get(change.index);
                 newDriverBatchAllocation.allocation.set(change.index, true);
-                currentFitness += newDriverBatchAllocation.calcFitnessDiff(shipmentList, batchStartIndex, currentBatchSize, antColonyTSP);
+                currentFitness += newDriverBatchAllocation.calcFitnessDiff(shipments, batchStartIndex, currentBatchSize, antColonyTSP);
 
 //                System.out.println("batchStartIndex: " + batchStartIndex + " currentBatchSize: " + currentBatchSize);
 //                System.out.println("allocation: " + change);
@@ -334,7 +332,7 @@ public class UDS {
 
         for (DriverBatchAllocation driverBatchAllocation : driverBatchAllocations) {
             Response.DriverAllocation driverAllocation = new Response.DriverAllocation();
-            driverAllocation.shipmentList = driverBatchAllocation.allocationShipments;
+            driverAllocation.shipments = driverBatchAllocation.allocationShipments;
             // 在迭代过程中将最佳的 tspResponse 分配情况的路线保存下来的代价太大 所以最后再重新算一次
 //            antColonyTSP.driverAndShipments(driverBatchAllocation.driver, driverBatchAllocation.allocationShipments).maxIterations(-1).run();
             driverAllocation.response = driverBatchAllocation.tspResponse;
@@ -344,8 +342,8 @@ public class UDS {
         antColonyTSP.recycle();
 
         Response response = new Response();
-        response.driverList = driverList;
-        response.shipmentList = shipmentList;
+        response.drivers = drivers;
+        response.shipments = shipments;
         response.driverAllocations = driverAllocations;
         response.allocation = allocation;
 
@@ -353,179 +351,5 @@ public class UDS {
 
         return response;
     }
-
-    static class DriverBatchAllocation {
-
-        public Driver driver;
-        // 当前批次分配 tspResponse 的缓存 其中 key 为 0 的表示当前批次未分配 也就 batchAllocationStartIndex 之前的分配
-        public HashMap<Long, TSPResponse> batchCache;
-        // 当前批次的运单分配情况 每一 bit 代表该单是否分配给了当前司机
-        public BitSet allocation;
-        // 当前已分配的运单
-        // 最开始一段为 driver.allocatedShipments 之后 batchAllocationStartIndex 之前为 已经分配的
-        // 再之后为当前 batch 分配的
-        public List<Shipment> allocationShipments;
-        // 当前 batch 分配在 allocationShipments 中的开始 index
-        public int batchAllocationStartIndex;
-        // 当前分配的 tspResponse
-        public TSPResponse tspResponse;
-        // 当前分配为空的 TSPResponse (也就是 batchAllocationStartIndex 之前的分配的 TSPResponse)
-        public TSPResponse batchEmptyTspResponse;
-
-        // 最佳分配的运单列表 只存储当前批次的单
-        public List<Shipment> bestBatchAllocationShipments;
-        // 最佳分配的 tspResponse
-        public TSPResponse bestTspResponse;
-
-        int hitCount;
-        int missCount;
-
-
-        public DriverBatchAllocation(Driver driver, int batchSize, boolean cache) {
-            this.driver = driver;
-            allocation = new BitSet(batchSize);
-            if (cache) {
-                batchCache = new HashMap<>();
-            }
-            if (driver.allocatedShipments != null) {
-                allocationShipments = new ArrayList<>(driver.allocatedShipments);
-                batchAllocationStartIndex = allocationShipments.size();
-            } else {
-                allocationShipments = new ArrayList<>();
-            }
-            bestBatchAllocationShipments = new ArrayList<>();
-        }
-
-        /**
-         * 计算新分配的 tspResponse 返回与上一个的差值
-         * <p>
-         * 如果是第一次则会返回当前分配的 tspResponse (因为之前为 0)
-         *
-         * @param allShipments
-         * @param batchStartIndex
-         * @param batchSize
-         * @return
-         */
-        double calcFitnessDiff(List<Shipment> allShipments, int batchStartIndex, int batchSize, AntColonyTSP antColonyTSP) {
-
-            TSPResponse tspResponse = null;
-            long allocationCacheKey = -1;
-            if (allocation.isEmpty()) {
-                tspResponse = batchEmptyTspResponse;
-            } else if (batchCache != null) {
-                // driverBatchAllocation.allocation 的长度不可能超过 32 所以取第一个 long 就可以
-                allocationCacheKey = (int) allocation.toLongArray()[0];
-                tspResponse = batchCache.get(allocationCacheKey);
-                if (tspResponse != null) {
-                    hitCount++;
-//                    System.out.println("calcFitnessDiff cache hit " + allocation + " " + allocationCacheKey + " hitCount: " + hitCount + " " + (hitCount / (float) (hitCount + missCount)) + " " + (hitCount + missCount) + " " + driver);
-                } else {
-                    missCount++;
-//                    System.out.println("calcFitnessDiff cache miss " + allocationCacheKey + " missCount: " + missCount + " " + (hitCount / (float) (hitCount + missCount)) + " " + driver);
-                }
-            }
-
-            // 清掉当前 batch 分配的
-            while (allocationShipments.size() > batchAllocationStartIndex) {
-                allocationShipments.remove(allocationShipments.size() - 1);
-            }
-            // 添加新的分配
-            for (int i = 0; i < batchSize; ++i) {
-                if (allocation.get(i)) {
-                    allocationShipments.add(allShipments.get(batchStartIndex + i));
-                }
-            }
-
-            // 计算当前分配的 tspResponse
-            if (tspResponse == null) {
-                if (allocationShipments.isEmpty()) {
-                    tspResponse = TSPResponse.EMPTY_RESPONSE;
-                } else {
-                    // TODO 为了测试暂时限制一下
-                    if (allocationShipments.size() > 15) {
-//                        System.out.println("xxxx " + allocationShipments.size());
-                        tspResponse = new TSPResponse();
-                        tspResponse.length = 999999999;
-                    } else {
-                        // TODO
-                        long start = System.currentTimeMillis();
-                        tspResponse = antColonyTSP.driverAndShipments(driver, allocationShipments).maxIterations(-1).run();
-                        long time = System.currentTimeMillis() - start;
-
-                        if (time < minTspTime) {
-                            minTspTime = time;
-                        } else if (time > maxTspTime) {
-                            maxTspTime = time;
-                        }
-                        tspRunTimes++;
-                        totalTspTime += time;
-                        tspRunShipmentCount += allocationShipments.size();
-                    }
-                }
-
-                if (allocation.isEmpty()) {
-                    batchEmptyTspResponse = tspResponse;
-                } else if (batchCache != null) {
-                    // TODO batchSize 比较大时 缓存代价太大 可以考虑去掉一些缓存数据
-//                    tspResponse.tour = null;
-//                    tspResponse.originalPoints = null;
-                    batchCache.put(allocationCacheKey, tspResponse);
-                }
-            }
-
-            TSPResponse oldTspResponse = this.tspResponse;
-            this.tspResponse = tspResponse;
-            // TODO
-            return tspResponse.length - (oldTspResponse == null ? 0 : oldTspResponse.length);
-        }
-
-        /**
-         * 将当前分配保存为最佳分配
-         */
-        public void saveBestAllocation() {
-            bestBatchAllocationShipments.clear();
-            for (int i = batchAllocationStartIndex; i < allocationShipments.size(); ++i) {
-                bestBatchAllocationShipments.add(allocationShipments.get(i));
-            }
-
-            bestTspResponse = tspResponse;
-        }
-
-        /**
-         * 为开始下一个 batch 做准备
-         */
-        public void prepareNextBatch() {
-            // 将最佳分配作为之后 batch 的初始分配(也就是 batchAllocationStartIndex 后移)
-            while (allocationShipments.size() > batchAllocationStartIndex) {
-                allocationShipments.remove(allocationShipments.size() - 1);
-            }
-            allocationShipments.addAll(bestBatchAllocationShipments);
-            batchAllocationStartIndex = allocationShipments.size();
-            bestBatchAllocationShipments.clear();
-
-            tspResponse = bestTspResponse;
-
-            allocation.clear();
-
-            if (batchCache != null) {
-                batchCache.clear();
-            }
-            batchEmptyTspResponse = bestTspResponse;
-        }
-
-        @Override
-        public String toString() {
-            return "DriverBatchAllocation{" +
-                    "allocation=" + allocation +
-                    ", allocationShipments=" + allocationShipments +
-                    ", batchAllocationStartIndex=" + batchAllocationStartIndex +
-                    ", tspResponse=" + tspResponse +
-                    ", bestBatchAllocationShipments=" + bestBatchAllocationShipments +
-                    ", bestTspResponse=" + bestTspResponse +
-                    ", batchCache=" + (batchCache == null ? batchCache : batchCache.size()) +
-                    '}';
-        }
-    }
-
 
 }

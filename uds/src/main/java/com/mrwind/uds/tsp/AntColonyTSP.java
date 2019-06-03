@@ -90,8 +90,8 @@ public class AntColonyTSP {
         }
     }
 
-    public static int getDriverAndShipmentsPointCount(Driver driver, List<Shipment> shipmentList) {
-        return shipmentList.size() * 2 + 1;
+    public static int getDriverAndShipmentsPointCount(Driver driver, List<Shipment> shipments) {
+        return shipments.size() * 2 + 1;
     }
 
     /**
@@ -155,15 +155,15 @@ public class AntColonyTSP {
      * 设置司机和运单 自动转换为任务点列表
      * 会同时设置 startIndex endIndex
      */
-    public AntColonyTSP driverAndShipments(Driver driver, List<Shipment> shipmentList) {
-        int pointCount = getDriverAndShipmentsPointCount(driver, shipmentList);
+    public AntColonyTSP driverAndShipments(Driver driver, List<Shipment> shipments) {
+        int pointCount = getDriverAndShipmentsPointCount(driver, shipments);
         pointCount(pointCount);
 
         addTSPPoint(driver.pos, 0, -1);
         int tspPointIndex = 1;
         Shipment shipment;
-        for (int i = 0; i < shipmentList.size(); ++i) {
-            shipment = shipmentList.get(i);
+        for (int i = 0; i < shipments.size(); ++i) {
+            shipment = shipments.get(i);
             addTSPPoint(shipment.sender, tspPointIndex, -1);
             addTSPPoint(shipment.receiver, tspPointIndex + 1, tspPointIndex);
             tspPointIndex += 2;
@@ -659,10 +659,10 @@ public class AntColonyTSP {
 
     private static final List<AntColonyTSP> sCache = new ArrayList<>();
 
-    public static AntColonyTSP obtain(Driver driver, List<Shipment> shipmentList) {
-        int pointCount = getDriverAndShipmentsPointCount(driver, shipmentList);
+    public static AntColonyTSP obtain(Driver driver, List<Shipment> shipments) {
+        int pointCount = getDriverAndShipmentsPointCount(driver, shipments);
         AntColonyTSP antColonyTSP = obtain(pointCount);
-        antColonyTSP.driverAndShipments(driver, shipmentList);
+        antColonyTSP.driverAndShipments(driver, shipments);
         return antColonyTSP;
     }
 

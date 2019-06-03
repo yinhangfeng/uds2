@@ -42,21 +42,21 @@
 
       async function drawResult() {
         const {
-          driverList,
-          shipmentList,
+          drivers,
+          shipments,
           driverAllocations,
         } = await fetchData();
 
         for (let i = 0; i < driverAllocations.length; ++i) {
           const driverAllocation = driverAllocations[i];
-          drawDriverAllocation(driverList[i], driverAllocation);
+          drawDriverAllocation(drivers[i], driverAllocation);
         }
  
         // info.innerText = `总距离: ${res.length}`;
       }
 
-      function drawDriverAllocation(driver, { shipmentList, response }) {
-        if (!shipmentList.length) {
+      function drawDriverAllocation(driver, { shipments, response }) {
+        if (!shipments.length) {
           response = {
             tour: [0],
           };
@@ -66,7 +66,7 @@
 
         driver.pos.isStart = true;
         const points = [driver.pos];
-        for (shipment of shipmentList) {
+        for (shipment of shipments) {
           shipment.sender.isSender = true;
           points.push(shipment.sender);
           points.push(shipment.receiver);

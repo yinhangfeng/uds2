@@ -18,14 +18,14 @@ public class DistanceImpl implements Distance {
         initDistance(points, rightAngleDistance, 0);
     }
 
-    public DistanceImpl(List<Driver> drivers, List<Shipment> shipmentList, boolean rightAngleDistance) {
+    public DistanceImpl(List<Driver> drivers, List<Shipment> shipments, boolean rightAngleDistance) {
         List<Point> points = new ArrayList<>();
         for (Driver driver : drivers) {
             points.add(driver.pos);
         }
         int driverEndIndex = points.size();
 
-        for (Shipment shipment : shipmentList) {
+        for (Shipment shipment : shipments) {
             points.add(shipment.sender);
             points.add(shipment.receiver);
         }
@@ -33,8 +33,8 @@ public class DistanceImpl implements Distance {
         initDistance(points, rightAngleDistance, driverEndIndex);
     }
 
-    public DistanceImpl(Driver driver, List<Shipment> shipmentList, boolean rightAngleDistance) {
-        this(Collections.singletonList(driver), shipmentList, rightAngleDistance);
+    public DistanceImpl(Driver driver, List<Shipment> shipments, boolean rightAngleDistance) {
+        this(Collections.singletonList(driver), shipments, rightAngleDistance);
     }
 
     private void initDistance(List<Point> points, boolean rightAngleDistance, int driverEndIndex) {

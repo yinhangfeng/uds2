@@ -3,6 +3,6 @@
 #### 输入
 
 ```java
-List<Shipment> shipmentList;
-List<Driver> driverList;
+List<Shipment> shipments;
+List<Driver> drivers;
 ```

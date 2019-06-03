@@ -5,7 +5,6 @@ import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.TypeReference;
 import com.alibaba.fastjson.serializer.SerializerFeature;
 import com.mrwind.uds.*;
-import com.mrwind.uds.tsp.AntColonyTSP;
 import com.mrwind.uds.util.CoordinateUtils;
 import com.mrwind.uds.util.KGrayCode;
 import io.jenetics.Genotype;
@@ -107,8 +106,8 @@ public class Main {
     static void output(Response response, String fileName) {
         JSONObject jsonObject = new JSONObject();
 
-        jsonObject.put("driverList", response.driverList);
-        jsonObject.put("shipmentList", response.shipmentList);
+        jsonObject.put("drivers", response.drivers);
+        jsonObject.put("shipments", response.shipments);
         jsonObject.put("driverAllocations", response.driverAllocations);
 
         JSONObject statistics = new JSONObject();
@@ -123,11 +122,11 @@ public class Main {
         }
     }
 
-    static void outputInputData(List<Driver> driverList, List<Shipment> shipmentList, String fileName) {
+    static void outputInputData(List<Driver> drivers, List<Shipment> shipments, String fileName) {
         JSONObject jsonObject = new JSONObject();
 
-        jsonObject.put("driverList", driverList);
-        jsonObject.put("shipmentList", shipmentList);
+        jsonObject.put("drivers", drivers);
+        jsonObject.put("shipments", shipments);
 
         File file = new File("../outputs/" + fileName);
         try {
@@ -137,15 +136,15 @@ public class Main {
         }
     }
 
-    static void outputInputData(List<Driver> driverList, List<Shipment> shipmentList) {
-        outputInputData(driverList, shipmentList, "input.json");
+    static void outputInputData(List<Driver> drivers, List<Shipment> shipments) {
+        outputInputData(drivers, shipments, "input.json");
     }
 
     static void outputRandomInputData(int driverCount, int shipmentCount) {
         List<Driver> drivers = getRandomDrivers(driverCount);
-        List<Shipment> shipmentList = getRandomShipments(shipmentCount);
+        List<Shipment> shipments = getRandomShipments(shipmentCount);
 
-        outputInputData(drivers, shipmentList);
+        outputInputData(drivers, shipments);
     }
 
     static Response getInputDataFromFile(String fileName) throws Exception {
@@ -156,9 +155,9 @@ public class Main {
         Response response = new Response();
 
         Type driverListType = new TypeReference<List<Driver>>() {}.getType();
-        response.driverList = testJson.getObject("driverList", driverListType);
+        response.drivers = testJson.getObject("drivers", driverListType);
         Type shipmentListType = new TypeReference<List<Shipment>>() {}.getType();
-        response.shipmentList = testJson.getObject("shipmentList", shipmentListType);
+        response.shipments = testJson.getObject("shipments", shipmentListType);
 
         return response;
     }
@@ -188,9 +187,9 @@ public class Main {
     static void test1() {
         List<Driver> drivers = getRandomDrivers(5);
 
-        List<Shipment> shipmentList = getRandomShipments(50);
+        List<Shipment> shipments = getRandomShipments(50);
 
-        UDS uds = new UDS(drivers, shipmentList);
+        UDS uds = new UDS(drivers, shipments);
 
         Response response = uds.run();
 
@@ -214,9 +213,9 @@ public class Main {
         driver.setPos(getRandomPoint(null, false, 120.35f, 120.4f, 30.36f, 30.4f));
         drivers.add(driver);
 
-        List<Shipment> shipmentList = getRandomShipments(15);
+        List<Shipment> shipments = getRandomShipments(15);
 
-        UDS uds = new UDS(drivers, shipmentList);
+        UDS uds = new UDS(drivers, shipments);
 
         Response response = uds.run();
 
@@ -226,11 +225,11 @@ public class Main {
     static void test3() throws Exception {
         Response responseInput = getInputDataFromFile();
 
-        List<Driver> drivers = responseInput.driverList;
-        List<Shipment> shipmentList = responseInput.shipmentList;
+        List<Driver> drivers = responseInput.drivers;
+        List<Shipment> shipments = responseInput.shipments;
 
         long start = System.currentTimeMillis();
-        UDS uds = new UDS(drivers, shipmentList);
+        UDS uds = new UDS(drivers, shipments);
         Response response = uds.run();
         System.out.println("run time: " + (System.currentTimeMillis() - start));
         output(response);
@@ -239,10 +238,10 @@ public class Main {
     static void test4() throws Exception {
         Response responseInput = getInputDataFromFile();
 
-        List<Driver> drivers = responseInput.driverList;
-        List<Shipment> shipmentList = responseInput.shipmentList;
+        List<Driver> drivers = responseInput.drivers;
+        List<Shipment> shipments = responseInput.shipments;
 
-        UDS uds = new UDS(drivers, shipmentList);
+        UDS uds = new UDS(drivers, shipments);
         Response response = null;
         long start = System.currentTimeMillis();
         response = uds.run1(1);
@@ -274,14 +273,14 @@ public class Main {
     static void test5() throws Exception {
         Response responseInput = getInputDataFromFile();
 
-        List<Driver> drivers = responseInput.driverList;
-        List<Shipment> shipmentList = responseInput.shipmentList;
+        List<Driver> drivers = responseInput.drivers;
+        List<Shipment> shipments = responseInput.shipments;
 
 //        AntColonyTSP.MAX_EXHAUSTIVE_COUNT = 14;
 
         double[] fitnessTotals = new double[3];
 
-        UDS uds = new UDS(drivers, shipmentList);
+        UDS uds = new UDS(drivers, shipments);
         Response response = null;
         for (int j = 0; j < 6; ++j) {
             System.out.println();
@@ -303,7 +302,7 @@ public class Main {
                 fitnessTotals[i - 1] += fitness;
             }
 
-            Collections.shuffle(shipmentList);
+            Collections.shuffle(shipments);
         }
 
 
@@ -317,16 +316,16 @@ public class Main {
     static void test6() throws Exception {
         Response responseInput = getInputDataFromFile();
 
-        List<Driver> drivers = responseInput.driverList;
-        List<Shipment> shipmentList = responseInput.shipmentList;
+        List<Driver> drivers = responseInput.drivers;
+        List<Shipment> shipments = responseInput.shipments;
 
         List<Genotype<IntegerGene>> initGenotypes = new ArrayList<>();
 
-        UDS uds = new UDS(drivers, shipmentList);
+        UDS uds = new UDS(drivers, shipments);
 
         Response response = null;
 
-        for (int i = 1; i <= 3; ++i) {
+        for (int i = 1; i <= 4; ++i) {
             long start = System.currentTimeMillis();
             response = uds.run1(i);
 
@@ -345,11 +344,9 @@ public class Main {
             System.out.println("minTspTime: " + UDS.minTspTime + " maxTspTime: " + UDS.maxTspTime + " totalTspTime: " + UDS.totalTspTime + " avgTspTime: " + (UDS.totalTspTime / (double) UDS.tspRunTimes));
 
 
-            for (int j = 0; j < 5; ++j) {
-                UDSChromosome udsChromosome = UDSChromosome.of(response.allocation, 0, drivers.size() - 1);
-                udsChromosome.response = response;
-                initGenotypes.add(Genotype.of(udsChromosome));
-            }
+            UDSChromosome udsChromosome = UDSChromosome.of(response.allocation, 0, drivers.size() - 1);
+            udsChromosome.response = response;
+            initGenotypes.add(Genotype.of(udsChromosome));
 
         }
 

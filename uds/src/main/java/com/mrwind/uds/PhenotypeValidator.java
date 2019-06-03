@@ -50,10 +50,10 @@ public class PhenotypeValidator implements Predicate<Phenotype<IntegerGene, Doub
 
         integerGeneDoublePhenotype.getFitness();
 
-        List<Driver> driverList = chromosome.response.driverList;
+        List<Driver> drivers = chromosome.response.drivers;
         List<Response.DriverAllocation> driverAllocations = chromosome.response.driverAllocations;
-        for (int i = 0; i < driverList.size(); ++i) {
-            Driver driver = driverList.get(i);
+        for (int i = 0; i < drivers.size(); ++i) {
+            Driver driver = drivers.get(i);
             if (driver.maxMileage > 0) {
                 if (driverAllocations.get(i).response.length > driver.maxMileage * 2) {
                     System.out.println("xxxx" + driverAllocations.get(i).response.length + " " + driver.maxMileage);
