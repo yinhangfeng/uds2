@@ -41,6 +41,20 @@ public class Response {
     public List<DriverAllocation> driverAllocations;
     // 遗传算法统计
     public List<SimpleEvolutionResult> evolutionResults;
+    // 分配方案 需要代表运单编号与 shipmentList 对应 值代表司机 与 driverList 对应
+    public int[] allocation;
+
+    public double getFitness() {
+        double fitness = 0;
+        for (Response.DriverAllocation driverAllocation : driverAllocations) {
+            if (driverAllocation.response != null) {
+                // TODO
+                fitness += driverAllocation.response.length;
+            }
+        }
+
+        return fitness;
+    }
 
     @Override
     public String toString() {

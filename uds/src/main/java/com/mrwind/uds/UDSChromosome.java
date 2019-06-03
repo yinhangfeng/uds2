@@ -2,8 +2,14 @@ package com.mrwind.uds;
 
 import io.jenetics.IntegerChromosome;
 import io.jenetics.IntegerGene;
+import io.jenetics.internal.math.random;
 import io.jenetics.util.ISeq;
 import io.jenetics.util.IntRange;
+import io.jenetics.util.MSeq;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Stream;
 
 public class UDSChromosome extends IntegerChromosome {
 
@@ -33,6 +39,18 @@ public class UDSChromosome extends IntegerChromosome {
             final int length
     ) {
         return new UDSChromosome(min, max, length);
+    }
+
+    public static UDSChromosome of(final int[] genes, final int min, final int max) {
+        List<IntegerGene> geneList = new ArrayList<>(genes.length);
+        for (int gen : genes) {
+            geneList.add(IntegerGene.of(gen, min, max));
+        }
+        return new UDSChromosome(ISeq.of(geneList), IntRange.of(genes.length));
+    }
+
+    public static UDSChromosome of(final IntegerGene... genes) {
+        return new UDSChromosome(ISeq.of(genes), IntRange.of(genes.length));
     }
 
     public Response getResponse() {

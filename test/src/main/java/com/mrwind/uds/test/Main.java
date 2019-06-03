@@ -8,6 +8,10 @@ import com.mrwind.uds.*;
 import com.mrwind.uds.tsp.AntColonyTSP;
 import com.mrwind.uds.util.CoordinateUtils;
 import com.mrwind.uds.util.KGrayCode;
+import io.jenetics.Genotype;
+import io.jenetics.IntegerGene;
+import io.jenetics.engine.EvolutionInit;
+import io.jenetics.util.ISeq;
 import org.apache.commons.io.FileUtils;
 
 import java.io.File;
@@ -310,6 +314,53 @@ public class Main {
         output(response, "uds1.json");
     }
 
+    static void test6() throws Exception {
+        Response responseInput = getInputDataFromFile();
+
+        List<Driver> drivers = responseInput.driverList;
+        List<Shipment> shipmentList = responseInput.shipmentList;
+
+        List<Genotype<IntegerGene>> initGenotypes = new ArrayList<>();
+
+        UDS uds = new UDS(drivers, shipmentList);
+
+        Response response = null;
+
+        for (int i = 1; i <= 3; ++i) {
+            long start = System.currentTimeMillis();
+            response = uds.run1(i);
+
+            double fitness = 0;
+            for (Response.DriverAllocation driverAllocation : response.driverAllocations) {
+                if (driverAllocation.response != null) {
+                    fitness += driverAllocation.response.length;
+                }
+            }
+
+            System.out.println("test6 fitness: " + fitness);
+            System.out.println("run time: " + (System.currentTimeMillis() - start));
+
+
+            System.out.println(response);
+            System.out.println("minTspTime: " + UDS.minTspTime + " maxTspTime: " + UDS.maxTspTime + " totalTspTime: " + UDS.totalTspTime + " avgTspTime: " + (UDS.totalTspTime / (double) UDS.tspRunTimes));
+
+
+            for (int j = 0; j < 5; ++j) {
+                UDSChromosome udsChromosome = UDSChromosome.of(response.allocation, 0, drivers.size() - 1);
+                udsChromosome.response = response;
+                initGenotypes.add(Genotype.of(udsChromosome));
+            }
+
+        }
+
+
+        EvolutionInit<IntegerGene> evolutionInit = EvolutionInit.of(ISeq.of(initGenotypes), 1);
+        response = uds.run(evolutionInit);
+
+
+        output(response, "uds.json");
+    }
+
     public static void main(String[] args) throws Exception {
 
 //        outputRandomInputData(10, 100);
@@ -317,8 +368,9 @@ public class Main {
 //        test1();
 //        test2();
 //        test3();
-        test4();
+//        test4();
 //        test5();
+        test6();
 
 //        testKGrayCode();
 //        TSPTest.main(args);

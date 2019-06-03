@@ -5,9 +5,7 @@ import com.mrwind.uds.tsp.AntColonyTSP;
 import com.mrwind.uds.tsp.TSPResponse;
 import com.mrwind.uds.util.KGrayCode;
 import io.jenetics.*;
-import io.jenetics.engine.Engine;
-import io.jenetics.engine.EvolutionResult;
-import io.jenetics.engine.EvolutionStatistics;
+import io.jenetics.engine.*;
 import io.jenetics.stat.DoubleMomentStatistics;
 import io.jenetics.util.Factory;
 
@@ -55,7 +53,7 @@ public class UDS {
 
     }
 
-    public Response run() {
+    public Response run(EvolutionInit<IntegerGene> evolutionInit) {
         int driverCount = driverList.size();
         int shipmentCount = shipmentList.size();
 
@@ -63,6 +61,15 @@ public class UDS {
 
         Engine<IntegerGene, Double> engine = Engine.builder(gt -> {
             UDSChromosome chromosome = gt.getChromosome().as(UDSChromosome.class);
+
+            if (chromosome.response != null) {
+                // fitness 已经算好
+                // 1. 通过 EvolutionInit 提供的初始种群
+                // 2. 通过 Mutator 但未改变的 Genotype 由于 Phenotype 重新创建 导致 evaluated 标记被重置
+
+                return chromosome.response.getFitness();
+            }
+
             int length = chromosome.length();
             List<Response.DriverAllocation> driverAllocations = new ArrayList<>(driverCount);
             for (int i = 0; i < driverCount; ++i) {
@@ -191,7 +198,14 @@ public class UDS {
 
         EvolutionResultStatistics<Double> evolutionResultStatistics = new EvolutionResultStatistics<>();
 
-        Genotype<IntegerGene> resultGenotype = engine.stream()
+        EvolutionStream<IntegerGene, Double> stream;
+        if (evolutionInit != null) {
+            stream = engine.stream(evolutionInit);
+        } else {
+            stream = engine.stream();
+        }
+
+        Genotype<IntegerGene> resultGenotype = stream
                 .limit(50)
                 .peek(statistics)
                 .peek(evolutionResultStatistics)
@@ -210,6 +224,10 @@ public class UDS {
 //        System.out.println(Arrays.deepToString(((DistanceImpl) distance).used));
 
         return response;
+    }
+
+    public Response run() {
+        return run(null);
     }
 
 
@@ -241,8 +259,8 @@ public class UDS {
         double bestFitness;
         double currentFitness = 0;
         int batchStartIndex = 0;
+        int[] allocation = new int[shipmentCount];
 
-        int xxx = 0;
         for (; ; ) {
             bestFitness = Double.MAX_VALUE;
             // 初始本批次所有单都分给第一个司机
@@ -251,7 +269,6 @@ public class UDS {
             }
 
             for (KGrayCode.Element change : kGrayCode) {
-                ++xxx;
                 if (change.oldValue >= 0) {
                     oldDriverBatchAllocation = driverBatchAllocations.get(change.oldValue);
                     assert oldDriverBatchAllocation.allocation.get(change.index);
@@ -272,9 +289,21 @@ public class UDS {
                 if (currentFitness < bestFitness) {
                     bestFitness = currentFitness;
 
+                    double bestFitnessCheck = 0;
                     // 保存最佳的分配
                     for (DriverBatchAllocation driverBatchAllocation : driverBatchAllocations) {
                         driverBatchAllocation.saveBestAllocation();
+
+                        if (driverBatchAllocation.bestTspResponse != null) {
+                            // TODO
+                            bestFitnessCheck += driverBatchAllocation.bestTspResponse.length;
+                        }
+                    }
+
+                    assert Math.abs(bestFitnessCheck - bestFitness) < 0.0001;
+
+                    for (int i = 0; i < currentBatchSize; ++i) {
+                        allocation[i + batchStartIndex] = change.nm[i];
                     }
                 }
             }
@@ -318,8 +347,8 @@ public class UDS {
         response.driverList = driverList;
         response.shipmentList = shipmentList;
         response.driverAllocations = driverAllocations;
+        response.allocation = allocation;
 
-        System.out.println("xxxx " + xxx);
         System.out.println("tspRunTimes: " + UDS.tspRunTimes + " minTspTime: " + UDS.minTspTime + " maxTspTime: " + UDS.maxTspTime + " totalTspTime: " + UDS.totalTspTime + " avgTspTime: " + (UDS.totalTspTime / (double) UDS.tspRunTimes) + " tspRunShipmentCount: " + tspRunShipmentCount);
 
         return response;
