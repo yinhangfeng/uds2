@@ -6,14 +6,14 @@ import com.mrwind.uds.TSPPoint;
 
 /**
  * 按司机工作时间以及取派点时间窗计算 tspResponse
- * ant.tspResponse 代表总消耗时间 单位 ms
+ * ant.fitness 代表总消耗时间 单位 ms
  */
-public class DriverTimeSelector implements Selector {
+public class DriverTimeWeigher implements Weigher {
 
     private Driver driver;
     private long currentTime;
 
-    public DriverTimeSelector(Driver driver, long currentTime) {
+    public DriverTimeWeigher(Driver driver, long currentTime) {
         this.driver = driver;
         this.currentTime = currentTime;
     }
@@ -108,5 +108,14 @@ public class DriverTimeSelector implements Selector {
     @Override
     public boolean isBetter(double currentBestLength, double currentBestFitness, Ant ant) {
         return ant.fitness < currentBestFitness;
+    }
+
+    @Override
+    public double getPheromoneIncrement(Ant ant) {
+        // 使用时间代替距离计算信息素增量
+        // 防止数值过小乘于 1000
+        // 返回值相当于工作时间秒的倒数
+        // 所以初始信息素建议采用平均工作时间秒的倒数
+        return 1000 / ant.fitness;
     }
 }

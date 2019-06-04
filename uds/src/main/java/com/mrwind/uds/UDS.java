@@ -100,7 +100,7 @@ public class UDS {
                     } else {
                         antColonyTSP = AntColonyTSP.obtain(driver, driverShipments)
                                 .distance(distance)
-//                                .selector(new DriverTimeSelector(driver, currentTime))
+//                                .weigher(new DriverTimeWeigher(driver, currentTime))
                                 .driverAndShipments(driver, driverShipments);
                         tspResponse = antColonyTSP.run();
                         antColonyTSP.recycle();
@@ -162,19 +162,19 @@ public class UDS {
                 .alterers(
 //                    new SinglePointCrossover<>(0.2),
                         new UniformCrossover<>(0.5),
-                        new Mutator<>(0.4)
+                        new Mutator<>(0.15)
                 )
                 // 默认的选择器 选出的结果中会包含重复的 但效果不错
-//                 .selector(new TournamentSelector<>())
+//                 .weigher(new TournamentSelector<>())
                 // 排序之后选择前面的 在实际中不常用
-//                .selector(new TruncationSelector<>())
-//                .selector(new RouletteWheelSelector<>())
-//                .selector(new LinearRankSelector<>())
-//                .selector(new StochasticUniversalSelector<>())
-//                .selector(new ExponentialRankSelector<>())
-//                .selector(new BoltzmannSelector<>())
-//                .selector(new EliteSelector<>())
-//                .selector(new MonteCarloSelector<>())
+//                .weigher(new TruncationSelector<>())
+//                .weigher(new RouletteWheelSelector<>())
+//                .weigher(new LinearRankSelector<>())
+//                .weigher(new StochasticUniversalSelector<>())
+//                .weigher(new ExponentialRankSelector<>())
+//                .weigher(new BoltzmannSelector<>())
+//                .weigher(new EliteSelector<>())
+//                .weigher(new MonteCarloSelector<>())
 
 //                .survivorsSelector(new TruncationSelector<>())
 //                .offspringSelector(new TruncationSelector<>())
@@ -188,7 +188,7 @@ public class UDS {
                 //// 完全随机
 //                .alterers(new Mutator<>(0.5))
 //                .offspringFraction(1)
-//                .selector(new TruncationSelector<>())
+//                .weigher(new TruncationSelector<>())
                 .build();
 
         EvolutionStatistics<Double, DoubleMomentStatistics> statistics =

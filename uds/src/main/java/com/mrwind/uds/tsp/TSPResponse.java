@@ -40,7 +40,7 @@ public class TSPResponse {
     public String toString() {
         return "TSPResponse{" +
                 "length=" + length +
-                ", tspResponse=" + fitness +
+                ", fitness=" + fitness +
                 ", tour=" + Arrays.toString(tour) +
                 ", endEqStart=" + endEqStart +
                 ", iterationNum=" + iterationNum +

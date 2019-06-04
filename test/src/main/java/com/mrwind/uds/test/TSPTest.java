@@ -4,7 +4,7 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.mrwind.uds.*;
 import com.mrwind.uds.tsp.AntColonyTSP;
-import com.mrwind.uds.tsp.DriverTimeSelector;
+import com.mrwind.uds.tsp.DriverTimeWeigher;
 import com.mrwind.uds.tsp.TSPResponse;
 import com.mrwind.uds.util.CoordinateUtils;
 import org.apache.commons.io.FileUtils;
@@ -389,7 +389,7 @@ public class TSPTest {
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm");
 
         driver.workStartTime = simpleDateFormat.parse("2019-05-26 08:00").getTime();
-        List<Shipment> shipments = Main.getRandomShipments(8);
+        List<Shipment> shipments = Main.getRandomShipments(15);
 
         shipments.get(0).getSender().startTime = simpleDateFormat.parse("2019-05-26 09:00").getTime();
         shipments.get(0).getSender().endTime = simpleDateFormat.parse("2019-05-26 10:00").getTime();
@@ -416,7 +416,7 @@ public class TSPTest {
 //                .startPointIndex(0)
 //                .endPointIndex(AntColonyTSP.RANDOM_POINT_INDEX)
                 .distance(new DistanceImpl(driver, shipments, true))
-                .selector(new DriverTimeSelector(driver, currentTime))
+                .weigher(new DriverTimeWeigher(driver, currentTime))
                 .run();
 
         antColonyTSP.recycle();
@@ -429,6 +429,8 @@ public class TSPTest {
     static void test8() throws Exception {
         Response data = Main.getInputDataFromFile("tspInput1.json");
 
+        AntColonyTSP.MAX_EXHAUSTIVE_COUNT = 10;
+
         Driver driver = data.drivers.get(0);
         List<Shipment> shipments = data.shipments;
 
@@ -437,16 +439,28 @@ public class TSPTest {
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm");
         long currentTime = simpleDateFormat.parse("2019-05-26 7:00").getTime();
 
-        TSPResponse response = antColonyTSP
-                .startPointIndex(0)
-                .endPointIndex(AntColonyTSP.RANDOM_POINT_INDEX)
+        antColonyTSP
+                .initialPheromone(0.01)
+//                .startPointIndex(0)
+//                .endPointIndex(AntColonyTSP.RANDOM_POINT_INDEX)
                 .distance(new DistanceImpl(driver, shipments, true))
-                .selector(new DriverTimeSelector(driver, currentTime))
-                .run();
+                .weigher(new DriverTimeWeigher(driver, currentTime));
+
+        double totalLength = 0;
+        double totalFitness = 0;
+        TSPResponse response = null;
+        int runCount = 50;
+        for (int i = 0; i < runCount; ++i) {
+            response = antColonyTSP.run();
+            totalLength += response.length;
+            totalFitness += response.fitness;
+            System.out.println(response);
+        }
+
+        System.out.println("avgLength: " + totalLength / runCount + " avgFitness: " + totalFitness / runCount);
 
         antColonyTSP.recycle();
 
-        System.out.println(response);
 //        System.out.println(response.originalPoints);
 
         output(response, response.originalPoints);
@@ -463,7 +477,7 @@ public class TSPTest {
 //        test6();
 //        testObtain();
 
-        test7();
-//        test8();
+//        test7();
+        test8();
     }
 }

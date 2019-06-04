@@ -367,10 +367,10 @@ public class Main {
 //        test3();
 //        test4();
 //        test5();
-        test6();
+//        test6();
 
 //        testKGrayCode();
-//        TSPTest.main(args);
+        TSPTest.main(args);
 //        JeneticsTest.main(args);
     }
 }

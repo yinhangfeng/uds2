@@ -2,9 +2,16 @@ package com.mrwind.uds.tsp;
 
 import com.mrwind.uds.TSPPoint;
 
-public interface Selector {
+/**
+ * 扩展蚁群的权值计算
+ */
+public interface Weigher {
 
-    Selector LENGTH_SELECTOR = new Selector() {
+    /**
+     * 默认的权值计算器
+     * 按距离计算权值
+     */
+    Weigher LENGTH_WEIGHER = new Weigher() {
         @Override
         public double processWeight(double weight, Ant ant, TSPPoint currentPoint, TSPPoint handlePoint) {
             return weight;
@@ -18,6 +25,11 @@ public interface Selector {
         @Override
         public boolean isBetter(double currentBestLength, double currentBestFitness, Ant ant) {
             return ant.length < currentBestLength;
+        }
+
+        @Override
+        public double getPheromoneIncrement(Ant ant) {
+            return 1 / ant.length;
         }
     };
 
@@ -47,4 +59,9 @@ public interface Selector {
      * 比较新的蚂蚁是否比原来的更好
      */
     boolean isBetter(double currentBestLength, double currentBestFitness, Ant ant);
+
+    /**
+     * 获取一次迭代之后的信息素增量
+     */
+    double getPheromoneIncrement(Ant ant);
 }
