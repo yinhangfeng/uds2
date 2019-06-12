@@ -370,7 +370,8 @@ public class Main {
 //        test6();
 
 //        testKGrayCode();
-        TSPTest.main(args);
+//        TSPTest.main(args);
 //        JeneticsTest.main(args);
+        ForkJoinPoolTest.test1();
     }
 }
