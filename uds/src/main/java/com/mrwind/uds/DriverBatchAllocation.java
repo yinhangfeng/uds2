@@ -30,8 +30,8 @@ public class DriverBatchAllocation {
     // 当前 batch 最佳分配的 tspResponse
     public TSPResponse bestTspResponse;
 
-    private int hitCount;
-    private int missCount;
+//    private int hitCount;
+//    private int missCount;
 
     public DriverBatchAllocation(Driver driver, int batchSize, boolean cache) {
         this.driver = driver;
@@ -66,15 +66,15 @@ public class DriverBatchAllocation {
             tspResponse = emptyTspResponse;
         } else if (allocationCache != null) {
             // driverBatchAllocation.allocation 的长度不可能超过 32 所以取第一个 long 就可以
-            allocationCacheKey = (int) allocation.toLongArray()[0];
+            allocationCacheKey = allocation.toLongArray()[0];
             tspResponse = allocationCache.get(allocationCacheKey);
-            if (tspResponse != null) {
-                hitCount++;
-//                    System.out.println("calcFitnessDiff allocationCache hit " + allocation + " " + allocationCacheKey + " hitCount: " + hitCount + " " + (hitCount / (float) (hitCount + missCount)) + " " + (hitCount + missCount) + " " + driver);
-            } else {
-                missCount++;
-//                    System.out.println("calcFitnessDiff allocationCache miss " + allocationCacheKey + " missCount: " + missCount + " " + (hitCount / (float) (hitCount + missCount)) + " " + driver);
-            }
+//            if (tspResponse != null) {
+//                hitCount++;
+////                    System.out.println("calcFitnessDiff allocationCache hit " + allocation + " " + allocationCacheKey + " hitCount: " + hitCount + " " + (hitCount / (float) (hitCount + missCount)) + " " + (hitCount + missCount) + " " + driver);
+//            } else {
+//                missCount++;
+////                    System.out.println("calcFitnessDiff allocationCache miss " + allocationCacheKey + " missCount: " + missCount + " " + (hitCount / (float) (hitCount + missCount)) + " " + driver);
+//            }
         }
 
         // TODO 有缓存时可延迟到 saveBestAllocation 处理

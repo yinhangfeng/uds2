@@ -18,7 +18,7 @@ class Point {
 配送员
 ```java
 class Driver {
-  Point pos; // 配送员当前位置 posj 无 startTime endTime 限制
+  Point position; // 配送员当前位置 posj 无 startTime endTime 限制
   Point home; // 配送员回程点 homej 无 startTime endTime 限制(?) dependency 为 posj
   int maxOrderNum; // 最大单量
   int maxMileage; // 最大里程(米)

@@ -189,7 +189,7 @@ public class AntColonyTSP {
     public AntColonyTSP driverAndShipments(Driver driver, List<Shipment> shipments) {
         pointCount(getDriverAndShipmentsPointCount(driver, shipments));
 
-        addTSPPoint(driver.pos, 0, -1);
+        addTSPPoint(driver.position, 0, -1);
         int tspPointIndex = 1;
         Shipment shipment;
         for (Shipment value : shipments) {

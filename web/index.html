@@ -64,8 +64,8 @@
         const { tour } = response;
         const color = getColor(driver.id);
 
-        driver.pos.isStart = true;
-        const points = [driver.pos];
+        driver.position.isStart = true;
+        const points = [driver.position];
         for (shipment of shipments) {
           shipment.sender.isSender = true;
           points.push(shipment.sender);

@@ -64,7 +64,7 @@ public class Main {
         Driver driver = new Driver();
         String id = String.valueOf(driverId++);
         driver.setId(id);
-        driver.setPos(getRandomPoint("ds_" + id));
+        driver.setPosition(getRandomPoint("ds_" + id));
         driver.setHome(getRandomPoint("dh_" + id));
         driver.setMaxLoad(12);
         driver.setMaxMileage(120_000);
@@ -201,16 +201,16 @@ public class Main {
         List<Driver> drivers = new ArrayList<>();
         Driver driver;
         driver = new Driver();
-        driver.setPos(getRandomPoint(null, false, 120.07f, 120.1f, 30.12f, 30.15f));
+        driver.setPosition(getRandomPoint(null, false, 120.07f, 120.1f, 30.12f, 30.15f));
         drivers.add(driver);
         driver = new Driver();
-        driver.setPos(getRandomPoint(null, false, 120.07f, 120.1f, 30.36f, 30.4f));
+        driver.setPosition(getRandomPoint(null, false, 120.07f, 120.1f, 30.36f, 30.4f));
         drivers.add(driver);
         driver = new Driver();
-        driver.setPos(getRandomPoint(null, false, 120.35f, 120.4f, 30.12f, 30.15f));
+        driver.setPosition(getRandomPoint(null, false, 120.35f, 120.4f, 30.12f, 30.15f));
         drivers.add(driver);
         driver = new Driver();
-        driver.setPos(getRandomPoint(null, false, 120.35f, 120.4f, 30.36f, 30.4f));
+        driver.setPosition(getRandomPoint(null, false, 120.35f, 120.4f, 30.36f, 30.4f));
         drivers.add(driver);
 
         List<Shipment> shipments = getRandomShipments(15);
@@ -362,7 +362,7 @@ public class Main {
 
 //        outputRandomInputData(10, 100);
 
-//        test1();
+        test1();
 //        test2();
 //        test3();
 //        test4();
@@ -372,6 +372,6 @@ public class Main {
 //        testKGrayCode();
 //        TSPTest.main(args);
 //        JeneticsTest.main(args);
-        ForkJoinPoolTest.test1();
+//        ForkJoinPoolTest.test1();
     }
 }

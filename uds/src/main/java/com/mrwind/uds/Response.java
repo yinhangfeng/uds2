@@ -10,18 +10,24 @@ public class Response {
 
     public static class DriverAllocation {
 
-        public DriverAllocation() {
-            shipments = new ArrayList<>();
-        }
-
         /**
          * 司机分配的运单 包括司机身上原来已分配不可重分的部分
+         * List 开始部分为原来已分配的运单
          */
         public List<Shipment> shipments;
         /**
          * 分配运单的路线 为空代表未分配运单
          */
         public TSPResponse response;
+
+        public DriverAllocation() {
+            shipments = new ArrayList<>();
+        }
+
+        public DriverAllocation(List<Shipment> shipments, TSPResponse response) {
+            this.shipments = shipments;
+            this.response = response;
+        }
 
         @Override
         public String toString() {
@@ -39,10 +45,10 @@ public class Response {
     public List<Shipment> shipments;
     // 每个司机的分配情况 与 drivers 对应
     public List<DriverAllocation> driverAllocations;
+    // 分配方案 索引代表运单编号与 shipments 对应 值代表司机 与 drivers 对应
+    public int[] allocation;
     // 遗传算法统计
     public List<SimpleEvolutionResult> evolutionResults;
-    // 分配方案 需要代表运单编号与 shipments 对应 值代表司机 与 drivers 对应
-    public int[] allocation;
 
     public double getFitness() {
         double fitness = 0;

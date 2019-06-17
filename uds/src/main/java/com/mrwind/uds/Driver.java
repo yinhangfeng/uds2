@@ -7,7 +7,7 @@ import java.util.List;
 public class Driver implements Cloneable {
     public String id;
     // 配送员当前位置 无 startTime endTime 限制
-    public Point pos;
+    public Point position;
     // 配送员回程点 无 startTime endTime 限制(?) dependency 为 posj
     // TODO 暂不支持
     public Point home;
@@ -17,9 +17,9 @@ public class Driver implements Cloneable {
     public int maxMileage;
     // 最大容量(计费单位)
     public int maxLoad;
-    // 今天工作起始时间
+    // 工作起始时间 时间戳毫秒
     public long workStartTime = -1;
-    // 今天工作结束时间
+    // 工作结束时间
     public long workEndTime = -1;
     // 已分配的运单 不可重新分配
     public List<Shipment> allocatedShipments;
@@ -42,13 +42,13 @@ public class Driver implements Cloneable {
         this.allocatedShipments = allocatedShipments;
     }
 
-    public Point getPos() {
-        return pos;
+    public Point getPosition() {
+        return position;
     }
 
-    public void setPos(Point pos) {
-        this.pos = pos;
-        pos.type = Point.TYPE_START;
+    public void setPosition(Point position) {
+        this.position = position;
+        position.type = Point.TYPE_START;
     }
 
     public Point getHome() {

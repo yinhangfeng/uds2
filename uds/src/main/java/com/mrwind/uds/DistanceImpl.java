@@ -21,7 +21,7 @@ public class DistanceImpl implements Distance {
     public DistanceImpl(List<Driver> drivers, List<Shipment> shipments, boolean rightAngleDistance) {
         List<Point> points = new ArrayList<>();
         for (Driver driver : drivers) {
-            points.add(driver.pos);
+            points.add(driver.position);
         }
         int driverEndIndex = points.size();
 
