@@ -92,6 +92,7 @@ public class AntColonyTSP {
 
     /**
      * 获取蚁群运算的 pointCount
+     * TODO 解耦 这里不应该与运单司机有关联
      */
     public static int getDriverAndShipmentsPointCount(Driver driver, List<Shipment> shipments) {
         return shipments.size() * 2 + 1;

@@ -2,6 +2,7 @@ package com.mrwind.uds;
 
 /**
  * 任务点
+ * TODO 关联 Driver Shipment ?
  */
 public class Point implements Cloneable {
 

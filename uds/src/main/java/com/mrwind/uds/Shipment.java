@@ -12,8 +12,10 @@ public class Shipment {
     public Point sender;
     // 收货点 receiver.dependency == sender receiver.endTime > sender.endTime
     public Point receiver;
-    // 如果运单已近分配给配送员 是否可以重新分配 TODO 目前没用
+    // 如果运单已经分配给配送员 是否可以重新分配 TODO 目前没用
     public boolean canRedistribution;
+    // 内部使用 运单的索引 与运单原始顺序对应 用于打乱运单之后关联原索引
+    int index;
 
     public String getId() {
         return id;

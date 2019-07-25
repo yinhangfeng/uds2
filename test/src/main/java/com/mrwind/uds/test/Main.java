@@ -189,7 +189,7 @@ public class Main {
 
         List<Shipment> shipments = getRandomShipments(50);
 
-        UDS uds = new UDS(drivers, shipments);
+        UDS uds = new UDS.Builder(drivers, shipments).build();
 
         Response response = uds.run();
 
@@ -215,7 +215,7 @@ public class Main {
 
         List<Shipment> shipments = getRandomShipments(15);
 
-        UDS uds = new UDS(drivers, shipments);
+        UDS uds = new UDS.Builder(drivers, shipments).build();
 
         Response response = uds.run();
 
@@ -229,7 +229,7 @@ public class Main {
         List<Shipment> shipments = responseInput.shipments;
 
         long start = System.currentTimeMillis();
-        UDS uds = new UDS(drivers, shipments);
+        UDS uds = new UDS.Builder(drivers, shipments).build();
         Response response = uds.run();
         System.out.println("run time: " + (System.currentTimeMillis() - start));
         output(response);
@@ -241,10 +241,10 @@ public class Main {
         List<Driver> drivers = responseInput.drivers;
         List<Shipment> shipments = responseInput.shipments;
 
-        UDS uds = new UDS(drivers, shipments);
+        UDS uds = new UDS.Builder(drivers, shipments).build();
         Response response = null;
         long start = System.currentTimeMillis();
-        response = uds.run1(1);
+        response = uds.runGreedy(1);
 
         double fitness = 0;
         for (Response.DriverAllocation driverAllocation : response.driverAllocations) {
@@ -280,14 +280,14 @@ public class Main {
 
         double[] fitnessTotals = new double[3];
 
-        UDS uds = new UDS(drivers, shipments);
+        UDS uds = new UDS.Builder(drivers, shipments).build();
         Response response = null;
         for (int j = 0; j < 6; ++j) {
             System.out.println();
             System.out.println("test5 " + j);
             for (int i = 1; i <= 3; ++i) {
                 long start = System.currentTimeMillis();
-                response = uds.run1(i);
+                response = uds.runGreedy(i);
 
                 double fitness = 0;
                 for (Response.DriverAllocation driverAllocation : response.driverAllocations) {
@@ -302,6 +302,7 @@ public class Main {
                 fitnessTotals[i - 1] += fitness;
             }
 
+            // XXX
             Collections.shuffle(shipments);
         }
 
@@ -321,38 +322,26 @@ public class Main {
 
         List<Genotype<IntegerGene>> initGenotypes = new ArrayList<>();
 
-        UDS uds = new UDS(drivers, shipments);
+        UDS uds = new UDS.Builder(drivers, shipments)
+                .maxGreedyBatchSize(4)
+                .greedyCount(1)
+                .build();
 
-        Response response = null;
+        long start = System.currentTimeMillis();
+        Response response = uds.run();
 
-        for (int i = 1; i <= 4; ++i) {
-            long start = System.currentTimeMillis();
-            response = uds.run1(i);
-
-            double fitness = 0;
-            for (Response.DriverAllocation driverAllocation : response.driverAllocations) {
-                if (driverAllocation.response != null) {
-                    fitness += driverAllocation.response.length;
-                }
+        double fitness = 0;
+        for (Response.DriverAllocation driverAllocation : response.driverAllocations) {
+            if (driverAllocation.response != null) {
+                fitness += driverAllocation.response.length;
             }
-
-            System.out.println("test6 fitness: " + fitness);
-            System.out.println("run time: " + (System.currentTimeMillis() - start));
-
-
-            System.out.println(response);
-            System.out.println("minTspTime: " + UDS.minTspTime + " maxTspTime: " + UDS.maxTspTime + " totalTspTime: " + UDS.totalTspTime + " avgTspTime: " + (UDS.totalTspTime / (double) UDS.tspRunTimes));
-
-
-            UDSChromosome udsChromosome = UDSChromosome.of(response.allocation, 0, drivers.size() - 1);
-            udsChromosome.response = response;
-            initGenotypes.add(Genotype.of(udsChromosome));
-
         }
 
+        System.out.println("test6 fitness: " + fitness);
+        System.out.println("run time: " + (System.currentTimeMillis() - start));
 
-        EvolutionInit<IntegerGene> evolutionInit = EvolutionInit.of(ISeq.of(initGenotypes), 1);
-        response = uds.run(evolutionInit);
+        System.out.println(response);
+        System.out.println("minTspTime: " + UDS.minTspTime + " maxTspTime: " + UDS.maxTspTime + " totalTspTime: " + UDS.totalTspTime + " avgTspTime: " + (UDS.totalTspTime / (double) UDS.tspRunTimes));
 
 
         output(response, "uds.json");
@@ -362,12 +351,12 @@ public class Main {
 
 //        outputRandomInputData(10, 100);
 
-        test1();
+//        test1();
 //        test2();
 //        test3();
 //        test4();
 //        test5();
-//        test6();
+        test6();
 
 //        testKGrayCode();
 //        TSPTest.main(args);

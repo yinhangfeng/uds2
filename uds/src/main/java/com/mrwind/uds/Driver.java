@@ -24,7 +24,7 @@ public class Driver implements Cloneable {
     // 已分配的运单 不可重新分配
     public List<Shipment> allocatedShipments;
     // 内部使用 已分配点的路径缓存
-    public TSPResponse allocatedTSPResponseCache;
+    public volatile TSPResponse allocatedTSPResponseCache;
 
     public String getId() {
         return id;

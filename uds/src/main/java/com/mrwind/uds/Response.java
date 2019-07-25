@@ -17,6 +17,7 @@ public class Response {
         public List<Shipment> shipments;
         /**
          * 分配运单的路线 为空代表未分配运单
+         * TODO 将路线与 Driver Shipment 关联
          */
         public TSPResponse response;
 
@@ -42,6 +43,7 @@ public class Response {
     }
 
     public List<Driver> drivers;
+    // 原始的运单
     public List<Shipment> shipments;
     // 每个司机的分配情况 与 drivers 对应
     public List<DriverAllocation> driverAllocations;

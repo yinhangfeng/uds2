@@ -4,6 +4,7 @@ import com.mrwind.uds.stat.EvolutionResultStatistics;
 import com.mrwind.uds.tsp.AntColonyTSP;
 import com.mrwind.uds.tsp.TSPResponse;
 import com.mrwind.uds.util.KGrayCode;
+import com.mrwind.uds.util.Utils;
 import io.jenetics.*;
 import io.jenetics.engine.*;
 import io.jenetics.stat.DoubleMomentStatistics;
@@ -12,16 +13,24 @@ import io.jenetics.util.Factory;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.ForkJoinTask;
 
 public class UDS {
 
     public static final boolean DEBUG = true;
 
     private List<Driver> drivers;
-    private List<Shipment> shipments;
-    private Distance distance;
+    List<Shipment> shipments;
+    // 当前时间戳(毫秒)
     private long currentTime;
+    // 需要多少个贪心结果作为遗传算法的初始值
+    private int greedyCount;
+    // 贪心算法的最大批次大小
+    private int maxGreedyBatchSize;
+    private Distance distance;
 
     public static long minTspTime = Long.MAX_VALUE;
     public static long maxTspTime = Long.MIN_VALUE;
@@ -29,12 +38,9 @@ public class UDS {
     public static long tspRunTimes = 0;
     public static long tspRunShipmentCount = 0;
 
-    public UDS(List<Driver> drivers, List<Shipment> shipments) {
+    private UDS(List<Driver> drivers, List<Shipment> shipments) {
         this.drivers = drivers;
         this.shipments = shipments;
-
-        int driverCount = drivers.size();
-        int shipmentCount = shipments.size();
 
         List<Shipment> allShipments = new ArrayList<>(shipments);
         for (Driver driver : drivers) {
@@ -42,7 +48,12 @@ public class UDS {
                 allShipments.addAll(driver.getAllocatedShipments());
             }
         }
+        // 创建距离矩阵 同时给所有 Point 分配了唯一 index
         distance = new DistanceImpl(drivers, allShipments, true);
+        // 给所有需要分配的 Shipment 分配与原始顺序一致的 index
+        for (int i = 0; i < shipments.size(); ++i) {
+            shipments.get(i).index = i;
+        }
 
         // TODO
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm");
@@ -54,7 +65,21 @@ public class UDS {
 
     }
 
-    public Response run(EvolutionInit<IntegerGene> evolutionInit) {
+    public Response run() {
+        EvolutionInit<IntegerGene> evolutionInit = null;
+        if (greedyCount > 0) {
+            List<Response> greedyResponseList = runMultipleGreedy(greedyCount, maxGreedyBatchSize);
+            evolutionInit = Utils.responsesToEvolutionInit(greedyResponseList);
+        }
+
+        return runGA(evolutionInit);
+    }
+
+    /**
+     * 运行遗传算法
+     * @param evolutionInit
+     */
+    public Response runGA(EvolutionInit<IntegerGene> evolutionInit) {
         int driverCount = drivers.size();
         int shipmentCount = shipments.size();
 
@@ -75,7 +100,7 @@ public class UDS {
             List<Response.DriverAllocation> driverAllocations = new ArrayList<>(driverCount);
             for (Driver value : drivers) {
                 List<Shipment> allocatedShipments = value.getAllocatedShipments();
-                driverAllocations.add(new Response.DriverAllocation(allocatedShipments == null ? new ArrayList<>() : allocatedShipments, null));
+                driverAllocations.add(new Response.DriverAllocation(allocatedShipments == null ? new ArrayList<>() : new ArrayList<>(allocatedShipments), null));
             }
             // 将当前染色体的运单分配状况放入 每个司机的运单列表
             for (int i = 0; i < length; ++i) {
@@ -169,21 +194,21 @@ public class UDS {
                         new Mutator<>(0.15)
                 )
                 // 默认的选择器 选出的结果中会包含重复的 但效果不错
-//                 .weigher(new TournamentSelector<>())
+//                 .selector(new TournamentSelector<>())
                 // 排序之后选择前面的 在实际中不常用
-//                .weigher(new TruncationSelector<>())
-//                .weigher(new RouletteWheelSelector<>())
-//                .weigher(new LinearRankSelector<>())
-//                .weigher(new StochasticUniversalSelector<>())
-//                .weigher(new ExponentialRankSelector<>())
-//                .weigher(new BoltzmannSelector<>())
-//                .weigher(new EliteSelector<>())
-//                .weigher(new MonteCarloSelector<>())
+//                .selector(new TruncationSelector<>())
+//                .selector(new RouletteWheelSelector<>())
+//                .selector(new LinearRankSelector<>())
+//                .selector(new StochasticUniversalSelector<>())
+//                .selector(new ExponentialRankSelector<>())
+//                .selector(new BoltzmannSelector<>())
+//                .selector(new EliteSelector<>())
+//                .selector(new MonteCarloSelector<>())
 
 //                .survivorsSelector(new TruncationSelector<>())
 //                .offspringSelector(new TruncationSelector<>())
 
-                // 一个司机分配到超过 30 单的概率比较低 所以一般不需要 phenotypeValidator
+                // 一个司机分配到超过平均单量的概率比较低 所以一般不需要 phenotypeValidator
 //                .phenotypeValidator(new PhenotypeValidator(20))
 //                .maximalPhenotypeAge(20)
 //                .offspringFraction(0.8)
@@ -192,7 +217,7 @@ public class UDS {
                 //// 完全随机
 //                .alterers(new Mutator<>(0.5))
 //                .offspringFraction(1)
-//                .weigher(new TruncationSelector<>())
+//                .selector(new TruncationSelector<>())
                 .build();
 
         EvolutionStatistics<Double, DoubleMomentStatistics> statistics =
@@ -228,16 +253,21 @@ public class UDS {
         return response;
     }
 
-    public Response run() {
-        return run(null);
+    public Response runGA() {
+        return runGA(null);
     }
 
-
-    public Response run1(int batchSize) {
+    /**
+     * 每次分配 batchSize 个订单 使用贪婪方式计算每一次的最佳分配
+     * @param batchSize
+     * @param shipments 运单列表 可能与原始顺序不同
+     */
+    Response runGreedy(int batchSize, List<Shipment> shipments) {
         if (batchSize > 32) {
             throw new IllegalArgumentException("batchSize must <= 32");
         }
 
+        List<Driver> drivers = this.drivers;
         int shipmentCount = shipments.size();
         int driverCount = drivers.size();
         //        int batchCount = (int) Math.ceil(shipmentCount / (double) batchSize);
@@ -261,7 +291,7 @@ public class UDS {
         double bestFitness;
         double currentFitness = 0;
         int batchStartIndex = 0;
-        // 存储分配方案
+        // 存储分配方案 index 与原始shipments 顺序对应
         int[] allocation = new int[shipmentCount];
 
         for (; ; ) {
@@ -345,7 +375,7 @@ public class UDS {
 
         Response response = new Response();
         response.drivers = drivers;
-        response.shipments = shipments;
+        response.shipments = this.shipments;
         response.driverAllocations = driverAllocations;
         response.allocation = allocation;
 
@@ -354,4 +384,95 @@ public class UDS {
         return response;
     }
 
+    public Response runGreedy(int batchSize) {
+        return runGreedy(batchSize, shipments);
+    }
+
+    /**
+     * 随机打乱运单顺序运行多次贪心算法
+     * @param times 运行次数
+     */
+    public List<Response> runMultipleGreedy(int times, int maxGreedyBatchSize) {
+        List<Response> responseList = new ArrayList<>(times);
+        if (times == 1) {
+            responseList.add(runGreedy(maxGreedyBatchSize));
+            return responseList;
+        }
+
+        ForkJoinPool pool = ForkJoinPool.commonPool();
+
+        List<ForkJoinTask<Response>> tasks = new ArrayList<>(times);
+
+        int batchSize = maxGreedyBatchSize;
+        for (int i = 0; i < times; ++i) {
+            tasks.add(pool.submit(new GreedyTask(this, batchSize, i != 0)));
+            if (--batchSize == 0) {
+                batchSize = maxGreedyBatchSize;
+            }
+        }
+
+        for (int i = 0; i < times; ++i) {
+            responseList.add(tasks.get(i).join());
+        }
+
+        return responseList;
+    }
+
+    List<Shipment> getShuffleShipments() {
+        List<Shipment> shipments = new ArrayList<>(this.shipments);
+        Collections.shuffle(shipments);
+        return shipments;
+    }
+
+    public static final class Builder {
+        List<Shipment> shipments;
+        private List<Driver> drivers;
+        // 当前时间戳(毫秒)
+        private long currentTime;
+        // 需要多少个贪心结果作为遗传算法的初始值
+        private int greedyCount = 1;
+        // 贪心算法的最大批次大小
+        private int maxGreedyBatchSize = 2;
+
+        public Builder() {
+        }
+
+        public Builder(List<Driver> drivers, List<Shipment> shipments) {
+            this.drivers = drivers;
+            this.shipments = shipments;
+        }
+
+        public Builder drivers(List<Driver> drivers) {
+            this.drivers = drivers;
+            return this;
+        }
+
+        public Builder shipments(List<Shipment> shipments) {
+            this.shipments = shipments;
+            return this;
+        }
+
+        public Builder currentTime(long currentTime) {
+            this.currentTime = currentTime;
+            return this;
+        }
+
+        public Builder greedyCount(int greedyCount) {
+            this.greedyCount = greedyCount;
+            return this;
+        }
+
+        public Builder maxGreedyBatchSize(int maxGreedyBatchSize) {
+            this.maxGreedyBatchSize = maxGreedyBatchSize;
+            return this;
+        }
+
+        public UDS build() {
+            UDS uDS = new UDS(drivers, shipments);
+            uDS.currentTime = this.currentTime;
+            uDS.maxGreedyBatchSize = this.maxGreedyBatchSize;
+            uDS.greedyCount = this.greedyCount;
+            return uDS;
+        }
+    }
 }

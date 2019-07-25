@@ -44,7 +44,9 @@ public class DistanceImpl implements Distance {
         double weight;
         for (int i = 0; i < pointCount; ++i) {
             distance[i][i] = -1;
-            // TODO pointIndex 的存在意味着 point 不能用于多线程个环境
+            // 给所有 point 唯一的编号
+            // pointIndex 的存在意味着 point 不能用于多线程环境
+            // TODO
             points.get(i).pointIndex = i;
             int j;
             if (i < driverEndIndex) {

@@ -24,6 +24,7 @@ public class TSPResponse {
     public double fitness;
     /**
      * 路线 终点回到起点时 不会包括最后一个起点
+     * 索引相对于 originalPoints
      */
     public int[] tour;
     /**
