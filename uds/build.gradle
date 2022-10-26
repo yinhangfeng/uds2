@@ -32,10 +32,10 @@ publishing {
     }
     repositories {
         maven {
-            url = 'http://nexus.timehouse.build/repository/maven-releases'
+            url = ''
             credentials {
-                username = 'admin'
-                password = 'admin123'
+                username = 'username'
+                password = 'password'
             }
         }
     }
